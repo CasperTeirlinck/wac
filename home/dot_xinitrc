@@ -6,4 +6,4 @@
 # ~/.local/bin/OneDriveGUI-1.0.2-x86_64.AppImage &
 # nm-applet &
 
-exec awesome
+exec dbus-run-session awesome
