@@ -1,6 +1,7 @@
 - name: Install Nix Home Manager [1/2]
   shell: nix-env -q | grep home-manager
   register: nix_env_home_manager
+  changed_when: false
   args:
     executable: /bin/bash
 
