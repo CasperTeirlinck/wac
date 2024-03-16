@@ -1,0 +1,10 @@
+- name: Install Nix Home Manager
+  shell: |
+    set -o pipefail &&
+    nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
+    nix-channel --update
+  args:
+    executable: /bin/bash
+    # creates: "/nix/var/nix/profiles/default/bin/nix"
+
+

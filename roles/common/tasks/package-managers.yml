@@ -1,4 +1,4 @@
-- name: Install Nix
+- name: Install Nix Package Manager
   shell: |
     set -o pipefail &&
     curl -L https://nixos.org/nix/install | sh -s -- --daemon
