@@ -5,7 +5,7 @@
   args:
     executable: /bin/bash
 
-- name: Install & Apply Nix Home Manager [2/2]
+- name: Install Nix Home Manager [2/2]
   shell: nix run home-manager/master -- init --switch ~/.dotfiles/home-manager
   args:
     executable: /bin/bash
