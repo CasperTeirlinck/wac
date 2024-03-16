@@ -13,7 +13,7 @@
     pkgs.zsh
     pkgs.fzf
     pkgs.zoxide
-    pkgs.exa
+    pkgs.eza
     pkgs.bat
     pkgs.trash-cli
 
