@@ -33,7 +33,7 @@
       owner = "Aloxaf";
       repo = "fzf-tab";
       rev = "v1.1.1";
-      hash = lib.fakeHash;
+      hash = pkgs.fakeHash;
     };
 
     # # Building this configuration will create a copy of 'dotfiles/screenrc' in
