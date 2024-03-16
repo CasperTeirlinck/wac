@@ -3,3 +3,6 @@
 
 - name: Home Manager
   import_tasks: home-manager.yml
+
+- name: Shell
+  import_tasks: shell.yml
