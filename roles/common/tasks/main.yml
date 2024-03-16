@@ -1,2 +1,2 @@
 - name: Package managers
-  import_tasks: roles/common/tasks/package-managers.yml
+  import_tasks: package-managers.yml
