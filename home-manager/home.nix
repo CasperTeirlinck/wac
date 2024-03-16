@@ -11,6 +11,11 @@
   home.packages = [
     pkgs.chezmoi
     pkgs.zsh
+    pkgs.fzf
+    pkgs.zoxide
+    pkgs.exa
+    pkgs.bat
+    pkgs.trash-cli
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
