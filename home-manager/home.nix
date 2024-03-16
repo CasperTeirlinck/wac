@@ -16,6 +16,7 @@
     pkgs.eza
     pkgs.bat
     pkgs.trash-cli
+    pkgs.awesome
 
     # # It is sometimes useful to fine-tune packages, for example, by applying
     # # overrides. You can do that directly here, just don't forget the
@@ -44,18 +45,6 @@
     #   org.gradle.console=verbose
     #   org.gradle.daemon.idletimeout=3600000
     # '';
-  };
-
-  services.xserver = {
-    enable = true;
-
-    windowManager.awesome = {
-      enable = true;
-      luaModules = with pkgs.luaPackages; [
-        luarocks # is the package manager for Lua modules
-        luadbi-mysql # Database abstraction layer
-      ];
-    };
   };
 
   # Home Manager can also manage your environment variables through
