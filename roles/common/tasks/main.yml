@@ -1,5 +1,5 @@
 - name: Package managers
   import_tasks: package-managers.yml
 
-- name: Home Manager
-  import_tasks: home-manager.yml
+# - name: Home Manager
+#   import_tasks: home-manager.yml

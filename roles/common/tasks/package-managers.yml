@@ -1,7 +1,13 @@
-- name: Install Nix Package Manager
+- name: Install Nix Package Manager [1/2]
   shell: |
     set -o pipefail &&
     curl -L https://nixos.org/nix/install | sh -s -- --daemon
   args:
     executable: /bin/bash
     creates: "/nix/var/nix/profiles/default/bin/nix"
+
+- name: Install Nix Package Manager [2/2]
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.config/nix/nix.conf"
+    line: experimental-features = nix-command flakes
+    create: true
