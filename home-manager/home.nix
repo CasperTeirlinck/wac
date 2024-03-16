@@ -29,25 +29,6 @@
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
   home.file = {
-    ".zsh/themes/powerlevel10k".source = pkgs.fetchFromGitHub {
-      owner = "romkatv";
-      repo = "powerlevel10k";
-      rev = "v1.20.0";
-      hash = "sha256-0/YOL1/G2SWncbLNaclSYUz7VyfWu+OB8TYJYm4NYkM=";
-    };
-    ".zsh/plugins/fzf-tab".source = pkgs.fetchFromGitHub {
-      owner = "Aloxaf";
-      repo = "fzf-tab";
-      rev = "v1.1.1";
-      hash = "sha256-0/YOL1/G2SWncbLNaclSYUz7VyfWu+OB8TYJYm4NYkM=";
-    };
-    ".zsh/plugins/fast-syntax-highlighting".source = pkgs.fetchFromGitHub {
-      owner = "zdharma-continuum";
-      repo = "fast-syntax-highlighting";
-      rev = "v1.55";
-      hash = "sha256-0/YOL1/G2SWncbLNaclSYUz7VyfWu+OB8TYJYm4NYkM=";
-    };
-
     # # Building this configuration will create a copy of 'dotfiles/screenrc' in
     # # the Nix store. Activating the configuration will then make '~/.screenrc' a
     # # symlink to the Nix store copy.

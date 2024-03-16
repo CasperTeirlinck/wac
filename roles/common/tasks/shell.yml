@@ -11,3 +11,23 @@
   register: output
   changed_when: output.rc != 0
   notify: user_login_reset
+
+- name: Install zsh theme
+  git:
+    repo: https://github.com/romkatv/powerlevel10k.git
+    dest: "{{ ansible_env.HOME }}/.zsh/themes/powerlevel10k"
+    version: master
+    depth: 1
+    single_branch: yes
+
+- name: Install zsh plugins
+  git:
+    repo: "{{ item.value }}"
+    dest: "{{ ansible_env.HOME }}/.zsh/plugins/{{ item.key }}"
+    depth: 1
+    single_branch: yes
+  loop: "{{ plugins | dict2items }}"
+  vars:
+    plugins:
+      fzf-tab: https://github.com/Aloxaf/fzf-tab
+      fast-syntax-highlighting: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
