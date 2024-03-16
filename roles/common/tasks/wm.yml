@@ -1,0 +1,8 @@
+- name: Install window manager
+  become: true
+  apt:
+    name:
+      - xorg
+      - awesome
+    state: latest
+    update_cache: yes

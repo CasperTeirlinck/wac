@@ -9,3 +9,6 @@
 
 - name: Shell
   import_tasks: shell.yml
+
+- name: Window Manager
+  import_tasks: wm.yml
