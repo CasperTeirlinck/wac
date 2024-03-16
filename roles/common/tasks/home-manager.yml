@@ -10,19 +10,3 @@
   args:
     executable: /bin/bash
   when: nix_env_home_manager.stdout == ""
-
-# TODO
-# - name: Check if Home Manager channel is already added
-
-# - name: Install Nix Home Manager [1/2]
-#   shell: |
-#     set -o pipefail &&
-#     nix-channel --add https://github.com/nix-community/home-manager/archive/master.tar.gz home-manager
-#     nix-channel --update
-#   args:
-#     executable: /bin/bash
-
-# - name: Install Nix Home Manager [2/2]
-#   shell: nix-shell '<home-manager>' -A install
-#   args:
-#     executable: /bin/bash
