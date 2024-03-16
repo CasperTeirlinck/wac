@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 {
   home.username = "casper";
@@ -33,7 +33,7 @@
       owner = "Aloxaf";
       repo = "fzf-tab";
       rev = "v1.1.1";
-      hash = pkgs.fakeHash;
+      hash = lib.fakeHash;
     };
 
     # # Building this configuration will create a copy of 'dotfiles/screenrc' in
