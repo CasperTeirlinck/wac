@@ -1,0 +1,4 @@
+- name: User login reset
+  listen: user_login_reset
+  fail:
+    msg: Automatic logout/login not supported. Please logout->login and run the ansible playbook again.
