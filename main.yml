@@ -1,0 +1,12 @@
+- hosts: localhost
+
+  pre_tasks:
+    - name: Apt update & upgrade
+      become: true
+      apt:
+        update_cache: true
+        upgrade: full
+      changed_when: false
+
+  roles:
+    - common

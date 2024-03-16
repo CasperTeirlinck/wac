@@ -1,0 +1,7 @@
+- name: Install Nix
+  shell: |
+    set -o pipefail &&
+    curl -L https://nixos.org/nix/install | sh -s -- --daemon
+  args:
+    executable: /bin/bash
+    creates: "{{ ansible_env.HOME }}/.nix-profile/bin/nix"
