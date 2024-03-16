@@ -77,10 +77,6 @@ zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 
 # Completion: Set fzf styles
-# source /home/linuxbrew/.linuxbrew/opt/fzf/shell/key-bindings.zsh >/dev/null 2>&1
-# source /usr/share/doc/fzf/examples/key-bindings.zsh >/dev/null 2>&1
-# source /home/linuxbrew/.linuxbrew/opt/fzf/shell/completion.zsh >/dev/null 2>&1
-# source /usr/share/doc/fzf/examples/completion.zsh >/dev/null 2>&1
 if [ -n "${commands[fzf-share]}" ]; then
   source "$(fzf-share)/key-bindings.zsh"
   source "$(fzf-share)/completion.zsh"
@@ -91,7 +87,7 @@ export FZF_DEFAULT_OPTS='
 '
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions --color=always $realpath'
 zstyle ':fzf-tab:*' fzf-bindings 'tab:accept'
-bindkey "${key[Up]}" fzf-history-widget
+bindkey '^[[A' fzf-history-widget
 
 # Aliases
 source $HOME/.bash_aliases
