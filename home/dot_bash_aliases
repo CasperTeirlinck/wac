@@ -1,0 +1,41 @@
+alias c='clear'
+alias f='fzf'
+alias tm='tmux'
+alias e='explorer.exe'
+alias grep='grep --color=always'
+alias uninstall='sudo apt purge --autoremove'
+alias shutdown='sudo shutdown -h now'
+
+command -v exa >/dev/null 2>&1 && alias lll='exa -1la --icons --group-directories-first --group --header -L=1 -T'
+command -v exa >/dev/null 2>&1 && alias ll='exa -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
+command -v exa >/dev/null 2>&1 && alias l='exa -1l --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
+
+alias g="git"
+alias ga="git add"
+alias gc="git commit -m"
+alias gps='git push'
+alias gpl='git pull'
+alias gs='git status -sb'
+alias grm='git remote -v'
+alias lg='lazygit'
+alias gb='git checkout -b'
+
+command -v z >/dev/null 2>&1 && alias cd='z'
+command -v batcat >/dev/null 2>&1 && alias cat='batcat'
+alias vim='nvim'
+alias v='nvim'
+alias py='python'
+alias ipython='python -m IPython'
+
+alias t='terraform'
+alias ti='terraform init'
+alias tp='terraform plan'
+alias ta='terraform apply'
+
+alias patglob='pattrick create --lifetime 1000 --out dot-netrc'
+alias patenv='pattrick create --lifetime 43200 --out dot-env'
+alias cv='conveyor'
+alias cvd='conveyor project build && conveyor project deploy --wait'
+
+alias clone_subdir='~/scripts/git_sparse_checkout.sh'
+alias fix_zsh_hist='~/scripts/fix_corrupt_zsh_hist.sh'

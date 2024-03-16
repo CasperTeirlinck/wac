@@ -1,14 +1,16 @@
-# Dotfiles: Ubuntu
-Workstation Configuration Repository
+# WaC: Ubuntu
+Workstation as Code
 
 ## Overview
 
 - 🏗️ [Ansible](https://docs.ansible.com/ansible/latest/):  
-   Used for provisioning of system components.
+   Provisioning of system components.
 - 📦 [Nix Home Manager](https://nixos.wiki/wiki/Home_Manager):  
-   Used for provisioning of user-specific components.
-- 🔧 [Chezmoi](https://www.chezmoi.io/):  
-   Used for managing dotfiles.
+   Provisioning of user-specific components.
+- 🗃️ [Chezmoi](https://www.chezmoi.io/):  
+   Managing dotfiles.
+- 🔧 [Asdf](https://asdf-vm.com/):  
+   Managing tool runtime versions.
 
 ## Installation
 0. Install Ubuntu Server 22.04 LTS & update `sudo apt update && sudo apt upgrade`

@@ -1,0 +1,9 @@
+- name: Init chezmoi
+  command: chezmoi init -S ~/.dotfiles
+  args:
+    creates: "{{ ansible_env.HOME }}/.config/chezmoi/chezmoi.yaml"
+
+- name: Apply dotfiles
+  command: chezmoi apply
+  register: output
+  changed_when: output.rc != 0
