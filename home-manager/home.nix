@@ -35,6 +35,12 @@
       rev = "v1.1.1";
       hash = "sha256-0/YOL1/G2SWncbLNaclSYUz7VyfWu+OB8TYJYm4NYkM=";
     };
+    ".zsh/plugins/fast-syntax-highlighting".source = pkgs.fetchFromGitHub {
+      owner = "zdharma-continuum";
+      repo = "fast-syntax-highlighting";
+      rev = "v1.55";
+      hash = "sha256-0/YOL1/G2SWncbLNaclSYUz7VyfWu+OB8TYJYm4NYkM=";
+    };
 
     # # Building this configuration will create a copy of 'dotfiles/screenrc' in
     # # the Nix store. Activating the configuration will then make '~/.screenrc' a
