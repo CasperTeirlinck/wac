@@ -2,7 +2,7 @@
 # Apply the dotfiles.
 # 
 # When arguments are suplied, apply using only a specific tool:
-# ./apply.sh [ansible | hm | chezmoi]
+# ./apply.sh [ansible | nix | chezmoi]
 # When using `ansible`, additionally you can give a list of tags to target:
 # ./apply.sh ansible packages,othertag
 
@@ -16,7 +16,7 @@ elif [ "$1" == "ansible" ]; then
     else
         ansible-playbook ~/.dotfiles/main.yml -K --tags ""$2""
     fi
-elif [ "$1" == "hm" ]; then
+elif [ "$1" == "nix" ]; then
     home-manager switch --flake ~/.dotfiles/home-manager
 elif [ "$1" == "chezmoi" ]; then
     chezmoi apply
