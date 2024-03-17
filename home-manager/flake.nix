@@ -3,7 +3,7 @@
 
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-        nixGL.url = "github:guibou/nixGL";
+        nixgl.url = "github:guibou/nixGL";
         home-manager = {
             url = "github:nix-community/home-manager";
             inputs.nixpkgs.follows = "nixpkgs";
@@ -11,18 +11,18 @@
     };
 
     # outputs = { nixpkgs, home-manager, ... } @ inputs:
-    outputs = { nixpkgs, home-manager, nixGL, ... }:
+    outputs = { nixpkgs, home-manager, nixgl, ... }:
     let
         system = "x86_64-linux";
         # nixgl = inputs.nixgl;
-        pkgs = nixpkgs.legacyPackages.${system};
-        # pkgs = import nixpkgs {
-        #     inherit system;
-        #     overlays = [ nixgl.overlay ];
-        # };
-        nixgl = import nixGL {
-            inherit pkgs;
+        # pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ nixgl.overlay ];
         };
+        # nixgl = import nixGL {
+        #     inherit pkgs;
+        # };
     in {
         homeConfigurations."casper" = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
@@ -33,9 +33,9 @@
 
             # Optionally use extraSpecialArgs
             # to pass through arguments to home.nix
-            extraSpecialArgs = {
-                inherit nixgl;
-            };
+            # extraSpecialArgs = {
+            #     inherit nixgl;
+            # };
         };
     };
 }

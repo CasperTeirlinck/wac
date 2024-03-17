@@ -1,4 +1,5 @@
-{ config, pkgs, lib, nixgl, ... }:
+# { config, pkgs, lib, nixgl, ... }:
+{ config, pkgs, lib, ... }:
 let
    nixGLWrap = pkg: pkgs.runCommand "${pkg.name}-nixgl-wrapper" {} ''
     mkdir $out
@@ -7,7 +8,7 @@ let
     mkdir $out/bin
     for bin in ${pkg}/bin/*; do
      wrapped_bin=$out/bin/$(basename $bin)
-     echo "exec ${lib.getExe nixgl.nixGLIntel} $bin \$@" > $wrapped_bin
+     echo "exec ${lib.getExe pkgs.nixgl.nixGLIntel} $bin \$@" > $wrapped_bin
      chmod +x $wrapped_bin
     done
   '';
@@ -24,7 +25,7 @@ in {
     # if needed, figure something out by e.g. isntalling nixGL outside home-manager? With nix-channel?
     # see: https://github.com/nix-community/nixGL/issues/114
     # nixGL.auto.nixGLDefault
-    nixgl.nixGLIntel
+    pkgs.nixgl.nixGLIntel
 
     pkgs.brave
     pkgs.vscode
