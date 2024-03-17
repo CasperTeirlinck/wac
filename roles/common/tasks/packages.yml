@@ -1,11 +1,11 @@
 - name: Install packages (brew)
   block:
     - name: Install taps
-      command: /home/linuxbrew/.linuxbrew/bin/brew tap {{ item }}
+      command: /home/linuxbrew/.linuxbrew/bin/brew tap {{ item.name }}
       args:
-        creates: /home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/{{ item }}
+        creates: /home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/{{ item.dirname }}
       loop:
-        - wez/wezterm-linuxbrew
+        - { name: wez/wezterm-linuxbrew, dirname: wez/homebrew-wezterm-linuxbrew }
 
     - name: Install packages
       command: /home/linuxbrew/.linuxbrew/bin/brew install {{ item }}
