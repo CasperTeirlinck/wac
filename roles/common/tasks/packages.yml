@@ -3,6 +3,7 @@
   apt:
     name:
       - software-properties-common
+      - libfuse2 # needed for running appimages
       # ↓ needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
       - build-essential
       - procps
