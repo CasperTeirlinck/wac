@@ -21,7 +21,7 @@
   home.stateVersion = "23.11";
 
   home.packages = [
-    nixgl.auto.nixGLDefault
+    # nixgl.auto.nixGLDefault
 
     pkgs.brave
     pkgs.vscode
