@@ -15,12 +15,15 @@
     let
         system = "x86_64-linux";
         # nixgl = inputs.nixgl;
-        # pkgs = nixpkgs.legacyPackages.${system};
-        pkgs = import nixpkgs {
-            inherit system;
-            overlays = [ nixgl.overlay ];
+        pkgs = nixpkgs.legacyPackages.${system};
+        # pkgs = import nixpkgs {
+        #     inherit system;
+        #     overlays = [ nixgl.overlay ];
+        # };
+        nixgl = import nixgl {
+            inherit pkgs;
         };
-        # .legacyPackages.${system};
+        
     in {
         homeConfigurations."casper" = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
@@ -31,9 +34,9 @@
 
             # Optionally use extraSpecialArgs
             # to pass through arguments to home.nix
-            # extraSpecialArgs = {
-                # inherit nixgl;
-            # };
+            extraSpecialArgs = {
+                inherit nixgl;
+            };
         };
     };
 }
