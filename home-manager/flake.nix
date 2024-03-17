@@ -10,11 +10,17 @@
         };
     };
 
-    outputs = { nixpkgs, home-manager, ... } @ inputs:
+    # outputs = { nixpkgs, home-manager, ... } @ inputs:
+    outputs = { nixpkgs, home-manager, nixgl, ... }:
     let
         system = "x86_64-linux";
-        nixgl = inputs.nixgl;
-        pkgs = nixpkgs.legacyPackages.${system};
+        # nixgl = inputs.nixgl;
+        # pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+            inherit system;
+            overlays = [ nixgl.overlay ];
+        };
+        # .legacyPackages.${system};
     in {
         homeConfigurations."casper" = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
@@ -25,9 +31,9 @@
 
             # Optionally use extraSpecialArgs
             # to pass through arguments to home.nix
-            extraSpecialArgs = {
-                inherit nixgl;
-            };
+            # extraSpecialArgs = {
+                # inherit nixgl;
+            # };
         };
     };
 }

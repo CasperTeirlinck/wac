@@ -1,4 +1,4 @@
-{ config, pkgs, lib, nixgl, ... }:
+{ config, pkgs, lib, ... }:
 let
    nixGLWrap = pkg: pkgs.runCommand "${pkg.name}-nixgl-wrapper" {} ''
     mkdir $out
@@ -7,7 +7,7 @@ let
     mkdir $out/bin
     for bin in ${pkg}/bin/*; do
      wrapped_bin=$out/bin/$(basename $bin)
-     echo "exec ${lib.getExe nixgl.auto.nixGLDefault} $bin \$@" > $wrapped_bin
+     echo "exec ${lib.getExe pkgs.nixgl.nixGLDefault} $bin \$@" > $wrapped_bin
      chmod +x $wrapped_bin
     done
   '';
@@ -20,7 +20,7 @@ in {
   home.stateVersion = "23.11";
 
   home.packages = [
-    nixgl.auto.nixGLDefault
+    # nixgl.auto.nixGLDefault
 
     pkgs.brave
     pkgs.vscode
