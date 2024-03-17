@@ -1,0 +1,6 @@
+- name: Install packages (brew)
+  command: /home/linuxbrew/.linuxbrew/bin/brew install {{ item }}
+  args:
+    creates: /home/linuxbrew/.linuxbrew/opt/{{ item }}
+  loop:
+    - wezterm

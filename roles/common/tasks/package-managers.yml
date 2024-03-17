@@ -20,3 +20,10 @@
         name: nix-daemon
         state: restarted
       changed_when: false
+
+- name: Install Homebrew
+  shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  args:
+    executable: /bin/bash
+    creates: /home/linuxbrew/.linuxbrew/bin/brew
+  when: install_brew
