@@ -11,6 +11,7 @@
   home.packages = [
     pkgs.brave
     pkgs.vscode
+    
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
@@ -65,6 +66,11 @@
   #
   home.sessionVariables = {
     # EDITOR = "emacs";
+  };
+
+  pkgs.config = {
+    allowUnfree = true;
+    allowUnfreePredicate = (_: true);
   };
 
   # Let Home Manager install and manage itself.
