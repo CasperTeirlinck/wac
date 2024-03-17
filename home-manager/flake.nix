@@ -3,11 +3,7 @@
 
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-        # nixGL.url = "github:guibou/nixGL";
-        nixGL = {
-            url = "github:guibou/nixGL";
-            flake = false;
-        };
+        nixGL.url = "github:guibou/nixGL";
         home-manager = {
             url = "github:nix-community/home-manager";
             inputs.nixpkgs.follows = "nixpkgs";
