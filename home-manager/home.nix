@@ -1,7 +1,6 @@
-# { config, pkgs, lib, nixgl, ... }:
 { config, pkgs, lib, ... }:
 let
-   nixGLWrap = pkg: pkgs.runCommand "${pkg.name}-nixgl-wrapper" {} ''
+  nixGLWrap = pkg: pkgs.runCommand "${pkg.name}-nixgl-wrapper" {} ''
     mkdir $out
     ln -s ${pkg}/* $out
     rm $out/bin
@@ -21,8 +20,8 @@ in {
   home.stateVersion = "23.11";
 
   home.packages = [
-    # cannot use nixGL.auto.nixGLDefault because it is impure and not allowed with flakes,
-    # if needed, figure something out by e.g. isntalling nixGL outside home-manager? With nix-channel?
+    # Cannot use nixGL.auto.nixGLDefault because it is impure and not allowed with flakes,
+    # if needed, figure something out by e.g. installing nixGL outside home-manager? With nix-channel?
     # see: https://github.com/nix-community/nixGL/issues/114
     # nixGL.auto.nixGLDefault
     pkgs.nixgl.nixGLIntel
@@ -67,21 +66,7 @@ in {
     # '';
   };
 
-  # Home Manager can also manage your environment variables through
-  # 'home.sessionVariables'. If you don't want to manage your shell through Home
-  # Manager then you have to manually source 'hm-session-vars.sh' located at
-  # either
-  #
-  #  ~/.nix-profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  ~/.local/state/nix/profiles/profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  /etc/profiles/per-user/casper/etc/profile.d/hm-session-vars.sh
-  #
+  # Home Manager can also manage your environment variables through 'home.sessionVariables'.
   home.sessionVariables = {
     # EDITOR = "emacs";
   };
