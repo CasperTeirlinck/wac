@@ -1,16 +1,18 @@
-- name: Make zsh the default shell [1/2]
-  shell: which zsh
-  register: which_zsh
-  args:
-    executable: /bin/bash
-  changed_when: false
+- name: Make zsh the default shell
+  block:
+    - name: Make zsh the default shell [1/2]
+      shell: which zsh
+      register: which_zsh
+      args:
+        executable: /bin/bash
+      changed_when: false
 
-- name: Make zsh the default shell [2/2]
-  become: true
-  command: sh -c "usermod --shell {{ which_zsh.stdout }} {{ ansible_user }}"
-  register: output
-  changed_when: output.rc != 0
-  notify: user_login_reset
+    - name: Make zsh the default shell [2/2]
+      become: true
+      command: sh -c "usermod --shell {{ which_zsh.stdout }} {{ ansible_user }}"
+      register: output
+      changed_when: output.rc != 0
+      notify: user_login_reset
 
 - name: Install zsh theme
   git:

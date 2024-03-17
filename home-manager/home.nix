@@ -9,6 +9,7 @@
   home.stateVersion = "23.11";
 
   home.packages = [
+    pkgs.brave
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
