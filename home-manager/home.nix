@@ -7,7 +7,7 @@ let
     mkdir $out/bin
     for bin in ${pkg}/bin/*; do
      wrapped_bin=$out/bin/$(basename $bin)
-     echo "exec ${lib.getExe pkgs.nixgl.auto.nixGLNvidia} $bin \$@" > $wrapped_bin
+     echo "exec ${lib.getExe pkgs.nixgl.nixGLNvidia} $bin \$@" > $wrapped_bin
      chmod +x $wrapped_bin
     done
   '';
@@ -24,7 +24,7 @@ in {
     # if needed, figure something out by e.g. installing nixGL outside home-manager? With nix-channel? Or use --impure?
     # see: https://github.com/nix-community/nixGL/issues/114
     # nixGL.auto.nixGLDefault
-    pkgs.nixgl.auto.nixGLNvidia
+    pkgs.nixgl.nixGLNvidia
 
     pkgs.brave
     pkgs.vscode
