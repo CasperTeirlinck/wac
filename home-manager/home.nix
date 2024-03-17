@@ -10,6 +10,8 @@
 
   home.packages = [
     pkgs.brave
+    pkgs.vscode
+    
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
