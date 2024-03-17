@@ -31,6 +31,9 @@ in {
 
     # (nixGLWrap pkgs.wezterm)
     (nixGLWrap pkgs.alacritty)
+    pkgs.arandr
+    pkgs.rofi
+    pkgs.blueman
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
