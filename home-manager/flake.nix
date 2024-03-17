@@ -15,7 +15,7 @@
     };
 
     # outputs = { nixpkgs, home-manager, ... } @ inputs:
-    outputs = { nixpkgs, home-manager, nixGL, ... }:
+    outputs = { nixpkgs, home-manager, nixGL, lib, ... }:
     let
         system = "x86_64-linux";
         # nixgl = inputs.nixgl;
