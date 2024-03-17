@@ -7,7 +7,7 @@ let
     mkdir $out/bin
     for bin in ${pkg}/bin/*; do
      wrapped_bin=$out/bin/$(basename $bin)
-     echo "exec ${lib.getExe pkgs.nixgl.nixGLDefault} $bin \$@" > $wrapped_bin
+     echo "exec ${lib.getExe pkgs.nixgl.auto.nixGLDefault} $bin \$@" > $wrapped_bin
      chmod +x $wrapped_bin
     done
   '';
