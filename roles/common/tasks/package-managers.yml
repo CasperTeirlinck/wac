@@ -26,4 +26,3 @@
   args:
     executable: /bin/bash
     creates: /home/linuxbrew/.linuxbrew/bin/brew
-  when: install_brew
