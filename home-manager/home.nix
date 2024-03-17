@@ -7,7 +7,7 @@ let
     mkdir $out/bin
     for bin in ${pkg}/bin/*; do
      wrapped_bin=$out/bin/$(basename $bin)
-     echo "exec ${lib.getExe nixgl.nixGLDefault} $bin \$@" > $wrapped_bin
+     echo "exec ${lib.getExe nixgl.auto.nixGLDefault} $bin \$@" > $wrapped_bin
      chmod +x $wrapped_bin
     done
   '';
@@ -20,7 +20,7 @@ in {
   home.stateVersion = "23.11";
 
   home.packages = [
-    nixgl.nixGLDefault
+    nixgl.auto.nixGLDefault
 
     pkgs.brave
     pkgs.vscode
