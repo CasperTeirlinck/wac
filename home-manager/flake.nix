@@ -3,7 +3,7 @@
 
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-        nixgl.url = "github:guibou/nixGL";
+        nixGL.url = "github:guibou/nixGL";
         home-manager = {
             url = "github:nix-community/home-manager";
             inputs.nixpkgs.follows = "nixpkgs";
@@ -11,7 +11,7 @@
     };
 
     # outputs = { nixpkgs, home-manager, ... } @ inputs:
-    outputs = { nixpkgs, home-manager, nixgl, ... }:
+    outputs = { nixpkgs, home-manager, nixGL, ... }:
     let
         system = "x86_64-linux";
         # nixgl = inputs.nixgl;
@@ -20,7 +20,7 @@
         #     inherit system;
         #     overlays = [ nixgl.overlay ];
         # };
-        nixgl = import nixgl {
+        nixgl = import nixGL {
             inherit pkgs;
         };
         
