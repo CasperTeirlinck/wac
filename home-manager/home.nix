@@ -26,7 +26,7 @@ in
     pkgs.brave
     pkgs.vscode
 
-    # (nixGLWrap pkgs.wezterm)
+    (nixGLWrap pkgs.wezterm)
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
