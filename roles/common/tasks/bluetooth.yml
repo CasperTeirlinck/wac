@@ -1,0 +1,15 @@
+- name: Install bluetooth
+  become: true
+  apt:
+    name:
+      - bluez
+      - blueman
+    state: latest
+    update_cache: yes
+
+- name: Enable bluetooth service
+  become: true
+  ansible.builtin.systemd_service:
+    name: bluetooth
+    state: started
+    enabled: true

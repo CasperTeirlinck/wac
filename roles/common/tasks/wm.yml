@@ -6,3 +6,21 @@
       - awesome
     state: latest
     update_cache: yes
+
+- name: Set mouse options
+  become: true
+  ansible.builtin.blockinfile:
+    path: /usr/share/X11/xorg.conf.d/99-mouse.conf
+    block: |
+      Section "InputClass"
+        Identifier "libinput pointer mouse"
+        MatchIsPointer "on"
+        MatchDevicePath "/dev/input/event*"
+        Driver "libinput"
+        Option "Accel Profile Enabled" "0 1 0"
+        Option "Accel Speed" "-0.8"
+      EndSection
+    insertafter: EOF
+    state: present
+    create: true
+  tags: x11

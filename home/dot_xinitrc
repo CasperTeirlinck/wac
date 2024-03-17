@@ -1,2 +1,4 @@
 picom &
+nm-applet &
+blueman-applet &
 exec dbus-run-session awesome
