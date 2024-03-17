@@ -1,3 +1,16 @@
+- name: Install packages (apt)
+  become: true
+  apt:
+    name:
+      - software-properties-common
+      # ↓ needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
+      - build-essential
+      - procps
+      - curl
+      - file
+    state: latest
+    update_cache: yes
+
 - name: Install packages (brew)
   block:
     - name: Install taps
