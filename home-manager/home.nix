@@ -20,6 +20,10 @@ in {
   home.stateVersion = "23.11";
 
   home.packages = [
+    # cannot use nixGL.auto.nixGLDefault because it is impure and not allowed with flakes,
+    # if needed, figure something out by e.g. isntalling nixGL outside home-manager? With nix-channel?
+    # see: https://github.com/nix-community/nixGL/issues/114
+    # nixGL.auto.nixGLDefault
     nixgl.nixGLIntel
 
     pkgs.brave
