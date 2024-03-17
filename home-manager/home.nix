@@ -30,6 +30,7 @@ in {
     pkgs.vscode
 
     # (nixGLWrap pkgs.wezterm)
+    pkgs.alacritty
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
