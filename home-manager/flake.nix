@@ -13,6 +13,7 @@
     outputs = { nixpkgs, home-manager, ... }:
     let
         system = "x86_64-linux";
+        nixgl = inputs.nixgl;
         pkgs = nixpkgs.legacyPackages.${system};
     in {
         homeConfigurations."casper" = home-manager.lib.homeManagerConfiguration {
