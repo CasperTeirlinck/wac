@@ -12,6 +12,7 @@
     pkgs.brave
     pkgs.vscode
 
+    pkgs.wezterm
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
