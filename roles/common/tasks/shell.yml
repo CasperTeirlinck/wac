@@ -33,3 +33,11 @@
     plugins:
       fzf-tab: https://github.com/Aloxaf/fzf-tab
       fast-syntax-highlighting: https://github.com/zdharma-continuum/fast-syntax-highlighting.git
+
+- name: Install tpm
+  git:
+    repo: https://github.com/tmux-plugins/tpm
+    dest: "{{ ansible_env.HOME }}/.tmux/plugins/tpm"
+    depth: 1
+    single_branch: yes
+    
