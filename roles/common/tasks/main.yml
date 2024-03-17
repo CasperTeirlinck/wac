@@ -15,3 +15,6 @@
 
 - name: Window Manager
   import_tasks: wm.yml
+
+- name: Compositor
+  import_tasks: tasks/picom.yml

@@ -1,0 +1,67 @@
+# Build picom
+# see https://github.com/yshui/picom
+
+- name: Install picom build dependencies
+  become: true
+  apt:
+    name:
+      - libxext-dev
+      - libxcb1-dev
+      - libxcb-damage0-dev
+      - libxcb-dpms0-dev
+      - libxcb-xfixes0-dev
+      - libxcb-shape0-dev
+      - libxcb-render-util0-dev
+      - libxcb-render0-dev
+      - libxcb-randr0-dev
+      - libxcb-composite0-dev
+      - libxcb-image0-dev
+      - libxcb-present-dev
+      - libxcb-glx0-dev
+      - libpixman-1-dev
+      - libdbus-1-dev
+      - libconfig-dev
+      - libgl-dev
+      - libegl-dev
+      - libpcre2-dev
+      - libevdev-dev
+      - uthash-dev
+      - libev-dev
+      - libx11-xcb-dev
+      - libepoxy-dev
+      - libxcb-util-dev
+      - ninja-build
+      - meson
+      - asciidoc
+    state: latest
+    update_cache: yes
+
+- name: Install picom repository
+  become: true
+  git:
+    repo: https://github.com/yshui/picom.git
+    version: v11.2
+    recursive: yes
+    update: yes
+    depth: 1
+    dest: /usr/local/src/picom
+  register: picom_git
+
+- name: Build picom
+  become: true
+  shell:
+    cmd: |
+      meson setup --buildtype=release build
+      ninja -C build
+    chdir: /usr/local/src/picom
+  when: picom_git.changed
+
+- name: Install picom
+  become: true
+  shell:
+    cmd: |
+      meson configure -Dprefix=/usr/local build
+      ninja -C build install
+    chdir: /usr/local/src/picom
+  when: picom_git.changed
+  

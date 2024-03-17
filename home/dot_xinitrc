@@ -1,4 +1,4 @@
-# picom &
+picom &
 # sxhkd -c ~/.config/sxhkd/sxhkdrc &
 # xsetroot -cursor_name left_ptr &
 # xrdb -load ~/.Xresources &
