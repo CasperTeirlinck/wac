@@ -11,7 +11,7 @@
   home.packages = [
     pkgs.brave
     pkgs.vscode
-    
+
     pkgs.chezmoi
     pkgs.zsh
     pkgs.fzf
@@ -68,7 +68,7 @@
     # EDITOR = "emacs";
   };
 
-  pkgs.config = {
+  nixpkgs.config = {
     allowUnfree = true;
     allowUnfreePredicate = (_: true);
   };
