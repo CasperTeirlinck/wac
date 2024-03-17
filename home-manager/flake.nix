@@ -3,6 +3,7 @@
 
     inputs = {
         nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+        nixgl.url = "github:guibou/nixGL";
         home-manager = {
             url = "github:nix-community/home-manager";
             inputs.nixpkgs.follows = "nixpkgs";
@@ -23,6 +24,9 @@
 
             # Optionally use extraSpecialArgs
             # to pass through arguments to home.nix
+            extraSpecialArgs = {
+                inherit nixgl;
+            };
         };
     };
 }
