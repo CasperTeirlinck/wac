@@ -71,13 +71,18 @@ in {
     # EDITOR = "emacs";
   };
 
-  nixpkgs.config = {
-    allowUnfree = true;
-    allowUnfreePredicate = (_: true);
+  programs.git = {
+    enable = true;
+    userName = "Casper Teirlinck";
+    userEmail = "casperteirlinck@gmail.com";
   };
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
   targets.genericLinux.enable = true;
+  nixpkgs.config = {
+    allowUnfree = true;
+    allowUnfreePredicate = (_: true);
+  };
 }
