@@ -43,8 +43,8 @@ beautiful.init(gears.filesystem.get_configuration_dir() .. "themes/default/theme
 -- local bling = require("bling")
 
 -- This is used later as the default terminal and editor to run.
-terminal = "x-terminal-emulator"
--- terminal = "alacritty"
+-- terminal = "x-terminal-emulator"
+terminal = "alacritty"
 editor = os.getenv("EDITOR") or "editor"
 editor_cmd = terminal .. " -e " .. editor
 
@@ -321,36 +321,37 @@ end
 
 -- Add a titlebar if titlebars_enabled is set to true in the rules.
 client.connect_signal("request::titlebars", function(c)
-    -- buttons for the titlebar
-    local buttons = gears.table.join(awful.button({}, 1, function()
-        c:emit_signal("request::activate", "titlebar", {
-            raise = true
-        })
-        -- Maximize on double click
-        if double_click_handler() then
-            c.maximized = not c.maximized
+    local buttons = gears.table.join(
+        awful.button({}, 1, function()
+            c:emit_signal("request::activate", "titlebar", {
+                raise = true
+            })
+            -- Maximize on double click
+            if double_click_handler() then
+                c.maximized = not c.maximized
+                c:raise()
+                -- Else just move
+            else
+                awful.mouse.client.move(c)
+            end
+        end),
+        awful.button({}, 2, function()
+            c:emit_signal("request::activate", "titlebar", {
+                raise = true
+            })
+            -- Minimize on middle click
+            c.minimized = true
             c:raise()
-            -- Else just move
-        else
-            awful.mouse.client.move(c)
-        end
-    end), awful.button({}, 2, function()
-        c:emit_signal("request::activate", "titlebar", {
-            raise = true
-        })
-        -- Minimize on middle click
-        c.minimized = true
-        c:raise()
-    end), awful.button({}, 3, function()
-        c:emit_signal("request::activate", "titlebar", {
-            raise = true
-        })
-        awful.mouse.client.resize(c)
-    end))
+        end),
+        awful.button({}, 3, function()
+            c:emit_signal("request::activate", "titlebar", {
+                raise = true
+            })
+            awful.mouse.client.resize(c)
+        end)
+    )
 
-    awful.titlebar(c, {
-        size = 25
-    }):setup {
+    awful.titlebar(c, { size = 25 }):setup {
         {
             -- Left
             -- awful.titlebar.widget.iconwidget(c),
