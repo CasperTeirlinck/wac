@@ -15,7 +15,7 @@
     };
 
     # outputs = { nixpkgs, home-manager, ... } @ inputs:
-    outputs = { nixpkgs, home-manager, nixGL, lib, ... }:
+    outputs = { nixpkgs, home-manager, nixGL, ... }:
     let
         system = "x86_64-linux";
         # nixgl = inputs.nixgl;
@@ -27,18 +27,6 @@
         nixgl = import nixGL {
             inherit pkgs;
         };
-        nixGLWrap = pkg: pkgs.runCommand "${pkg.name}-nixgl-wrapper" {} ''
-            mkdir $out
-            ln -s ${pkg}/* $out
-            rm $out/bin
-            mkdir $out/bin
-            for bin in ${pkg}/bin/*; do
-            wrapped_bin=$out/bin/$(basename $bin)
-            echo "exec ${lib.getExe nixgl.auto.nixGLDefault} $bin \$@" > $wrapped_bin
-            chmod +x $wrapped_bin
-            done
-        '';
-        
     in {
         homeConfigurations."casper" = home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
