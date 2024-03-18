@@ -58,7 +58,7 @@ local globalkeys = gears.table.join(
     -- Standard program
     awful.key({ winkey, }, "Return", function() awful.spawn(terminal) end,
         { description = "open a terminal", group = "launcher" }),
-    awful.key({ altkey, }, "r", function() awful.util.spawn("~/.nix-profile/bin/rofi -show drun") end,
+    awful.key({ altkey, }, "space", function() awful.spawn("rofi -show drun") end,
         { description = "open rofi", group = "launcher" }),
 
     awful.key({ winkey, "Control" }, "r", awesome.restart,
@@ -95,9 +95,7 @@ local globalkeys = gears.table.join(
         { description = "restore minimized", group = "client" }),
 
     -- Prompt
-    -- awful.key({ winkey }, "r", function() awful.screen.focused().mypromptbox:run() end,
-    --     { description = "run prompt", group = "launcher" }),
-    awful.key({ winkey }, "r", function() awful.spawn.with_shell("~/.nix-profile/bin/rofi -show drun") end,
+    awful.key({ winkey }, "r", function() awful.screen.focused().mypromptbox:run() end,
         { description = "run prompt", group = "launcher" }),
 
     awful.key({ winkey }, "x",

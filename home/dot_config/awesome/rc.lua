@@ -1,15 +1,13 @@
 -- ref: https://awesomewm.org/doc/api/documentation/05-awesomerc.md.html
 pcall(require, "luarocks.loader")
 
-local gears      = require("gears")
-local awful      = require("awful")
-local wibox      = require("wibox")
-local beautiful  = require("beautiful")
-local naughty    = require("naughty")
-local xresources = require("beautiful.xresources")
+local gears     = require("gears")
+local awful     = require("awful")
+local wibox     = require("wibox")
+local beautiful = require("beautiful")
+local naughty   = require("naughty")
 
-local dpi        = xresources.apply_dpi
-local winkey     = "Mod4"
+local winkey    = "Mod4"
 
 if awesome.startup_errors then
     naughty.notify({
@@ -34,30 +32,13 @@ do
     end)
 end
 
+awful.util.shell = "/home/casper/.nix-profile/bin/zsh"
+
 require("theme")
+require("layout")
 
 -- Bling utilities: https://github.com/BlingCorp/bling
 -- local bling = require("bling")
-
-awful.layout.layouts = {
-    -- bling.layout.mstab,
-    awful.layout.suit.floating
-    -- awful.layout.suit.tile,
-    -- awful.layout.suit.tile.left,
-    -- awful.layout.suit.tile.bottom,
-    -- awful.layout.suit.tile.top,
-    -- awful.layout.suit.fair,
-    -- awful.layout.suit.fair.horizontal,
-    -- awful.layout.suit.spiral,
-    -- awful.layout.suit.spiral.dwindle,
-    -- awful.layout.suit.max,
-    -- awful.layout.suit.max.fullscreen,
-    -- awful.layout.suit.magnifier,
-    -- awful.layout.suit.corner.nw,
-    -- awful.layout.suit.corner.ne,
-    -- awful.layout.suit.corner.sw,
-    -- awful.layout.suit.corner.se,
-}
 
 -- Menu
 awesomemenu = {
@@ -118,9 +99,6 @@ local function set_wallpaper(s)
         gears.wallpaper.maximized(wallpaper, s, true)
     end
 end
-
-beautiful.useless_gap = 10
-beautiful.gap_single_client = true
 
 screen.connect_signal("property::geometry", set_wallpaper)
 
@@ -185,5 +163,3 @@ root.buttons(require("mappings.global_mouse"))
 root.keys(require("mappings.global_keys"))
 
 require("clients")
-
--- awful.spawn.with_shell("picom")

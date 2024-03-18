@@ -69,7 +69,7 @@ in {
     # '';
   };
 
-  # Home Manager can also manage your environment variables through 'home.sessionVariables'.
+  # Home Manager can also manage your environment variables.
   home.sessionVariables = {
     # EDITOR = "emacs";
   };
@@ -79,6 +79,28 @@ in {
     userName = "Casper Teirlinck";
     userEmail = "casperteirlinck@gmail.com";
   };
+
+  home.pointerCursor = 
+    let 
+      getFrom = url: hash: name: {
+          gtk.enable = true;
+          x11.enable = true;
+          name = name;
+          size = 24;
+          package = 
+            pkgs.runCommand "moveUp" {} ''
+              mkdir -p $out/share/icons
+              ln -s ${pkgs.fetchzip {
+                url = url;
+                hash = hash;
+              }} $out/share/icons/${name}
+          '';
+        };
+    in
+      getFrom 
+        "https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.3/Bibata-Modern-Classic.tar.gz"
+        "sha256-vn+91iKXWo++4bi3m9cmdRAXFMeAqLij+SXaSChedow="
+        "Bibata-Modern-Classic";
 
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;

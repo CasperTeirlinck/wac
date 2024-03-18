@@ -1,3 +1,5 @@
+xrdb -merge -I$HOME ~/.Xresources
+
 # Startup programs
 picom &
 nm-applet &
