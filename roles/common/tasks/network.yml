@@ -8,10 +8,44 @@
     update_cache: yes
   tags: network
 
+- name: Disable systemd-networkd
+  block:
+    - name: Disable systemd-networkd [1/2]
+      become: true
+      ansible.builtin.systemd_service:
+        name: systemd-networkd
+        state: stopped
+        enabled: false
+        masked: true
+      tags: network
+
+    - name: Disable systemd-networkd [2/2]
+      become: true
+      ansible.builtin.systemd_service:
+        name: systemd-networkd.socket
+        state: stopped
+        enabled: false
+        masked: true
+      tags: network
+
 - name: Enable network manager
-  become: true
-  ansible.builtin.systemd_service:
-    name: NetworkManager
-    state: started
-    enabled: true
-  tags: network
+  block:
+    - name: Enable network manager [1/3]
+      become: true
+      ansible.builtin.systemd_service:
+        name: NetworkManager
+        state: started
+        enabled: true
+      tags: network
+
+    - name: Enable network manager [2/3]
+      become: true
+      command: netplan set renderer=NetworkManager
+      changed_when: false
+      tags: network
+
+    - name: Enable network manager [3/3]
+      become: true
+      command: netplan apply
+      changed_when: false
+      tags: network

@@ -4,6 +4,7 @@
     name:
       - software-properties-common
       - libfuse2 # needed for running appimages
+      - gnome-keyring # needed for apps to store/share secrets
       # ↓ needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
       - build-essential
       - procps

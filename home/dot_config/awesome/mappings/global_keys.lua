@@ -1,49 +1,52 @@
 local gears = require("gears")
 local awful = require("awful")
 local hotkeys_popup = require("awful.hotkeys_popup")
-local modkey = "Mod4"
+
+local terminal = "/home/linuxbrew/.linuxbrew/bin/wezterm" -- x-terminal-emulator, alacritty
+local winkey = "Mod4"
+local altkey = "Mod1"
 
 local globalkeys = gears.table.join(
-    awful.key({ modkey, }, "s", hotkeys_popup.show_help,
+    awful.key({ winkey, }, "s", hotkeys_popup.show_help,
         { description = "show help", group = "awesome" }),
-    awful.key({ modkey, }, "Left", awful.tag.viewprev,
+    awful.key({ winkey, }, "Left", awful.tag.viewprev,
         { description = "view previous", group = "tag" }),
-    awful.key({ modkey, }, "Right", awful.tag.viewnext,
+    awful.key({ winkey, }, "Right", awful.tag.viewnext,
         { description = "view next", group = "tag" }),
-    awful.key({ modkey, }, "Escape", awful.tag.history.restore,
+    awful.key({ winkey, }, "Escape", awful.tag.history.restore,
         { description = "go back", group = "tag" }),
 
-    awful.key({ modkey, }, "j",
+    awful.key({ winkey, }, "j",
         function()
             awful.client.focus.byidx(1)
         end,
         { description = "focus next by index", group = "client" }
     ),
-    awful.key({ modkey, }, "k",
+    awful.key({ winkey, }, "k",
         function()
             awful.client.focus.byidx(-1)
         end,
         { description = "focus previous by index", group = "client" }
     ),
-    awful.key({ modkey, }, "w", function() mymainmenu:show() end,
+    awful.key({ winkey, }, "w", function() mymainmenu:show() end,
         { description = "show main menu", group = "awesome" }),
 
     -- Move
-    awful.key({ "Mod1", "Shift" }, "Left", function() awful.client.swap.global_bydirection("left") end,
+    awful.key({ altkey, "Shift" }, "Left", function() awful.client.swap.global_bydirection("left") end,
         { description = "swap with left client", group = "client" }),
-    awful.key({ "Mod1", "Shift" }, "Right", function() awful.client.swap.global_bydirection("right") end,
+    awful.key({ altkey, "Shift" }, "Right", function() awful.client.swap.global_bydirection("right") end,
         { description = "swap with right client", group = "client" }),
 
     -- Focus
-    awful.key({ "Mod1" }, "Left", function() awful.client.focus.global_bydirection("left") end,
+    awful.key({ altkey }, "Left", function() awful.client.focus.global_bydirection("left") end,
         { description = "focus to the left", group = "client" }),
-    awful.key({ "Mod1" }, "Right", function() awful.client.focus.global_bydirection("right") end,
+    awful.key({ altkey }, "Right", function() awful.client.focus.global_bydirection("right") end,
         { description = "focus to the right", group = "client" }),
 
     --
-    awful.key({ modkey, }, "u", awful.client.urgent.jumpto,
+    awful.key({ winkey, }, "u", awful.client.urgent.jumpto,
         { description = "jump to urgent client", group = "client" }),
-    awful.key({ modkey, }, "Tab",
+    awful.key({ winkey, }, "Tab",
         function()
             awful.client.focus.history.previous()
             if client.focus then
@@ -53,30 +56,33 @@ local globalkeys = gears.table.join(
         { description = "go back", group = "client" }),
 
     -- Standard program
-    awful.key({ modkey, }, "Return", function() awful.spawn(terminal) end,
+    awful.key({ winkey, }, "Return", function() awful.spawn(terminal) end,
         { description = "open a terminal", group = "launcher" }),
-    awful.key({ modkey, "Control" }, "r", awesome.restart,
+    awful.key({ altkey, }, "r", function() awful.util.spawn("~/.nix-profile/bin/rofi -show drun") end,
+        { description = "open rofi", group = "launcher" }),
+
+    awful.key({ winkey, "Control" }, "r", awesome.restart,
         { description = "reload awesome", group = "awesome" }),
-    awful.key({ modkey, "Shift" }, "q", awesome.quit,
+    awful.key({ winkey, "Shift" }, "q", awesome.quit,
         { description = "quit awesome", group = "awesome" }),
-    awful.key({ modkey, }, "l", function() awful.tag.incmwfact(0.05) end,
+    awful.key({ winkey, }, "l", function() awful.tag.incmwfact(0.05) end,
         { description = "increase master width factor", group = "layout" }),
-    awful.key({ modkey, }, "h", function() awful.tag.incmwfact(-0.05) end,
+    awful.key({ winkey, }, "h", function() awful.tag.incmwfact(-0.05) end,
         { description = "decrease master width factor", group = "layout" }),
-    awful.key({ modkey, "Shift" }, "h", function() awful.tag.incnmaster(1, nil, true) end,
+    awful.key({ winkey, "Shift" }, "h", function() awful.tag.incnmaster(1, nil, true) end,
         { description = "increase the number of master clients", group = "layout" }),
-    awful.key({ modkey, "Shift" }, "l", function() awful.tag.incnmaster(-1, nil, true) end,
+    awful.key({ winkey, "Shift" }, "l", function() awful.tag.incnmaster(-1, nil, true) end,
         { description = "decrease the number of master clients", group = "layout" }),
-    awful.key({ modkey, "Control" }, "h", function() awful.tag.incncol(1, nil, true) end,
+    awful.key({ winkey, "Control" }, "h", function() awful.tag.incncol(1, nil, true) end,
         { description = "increase the number of columns", group = "layout" }),
-    awful.key({ modkey, "Control" }, "l", function() awful.tag.incncol(-1, nil, true) end,
+    awful.key({ winkey, "Control" }, "l", function() awful.tag.incncol(-1, nil, true) end,
         { description = "decrease the number of columns", group = "layout" }),
-    awful.key({ modkey, }, "space", function() awful.layout.inc(1) end,
+    awful.key({ winkey, }, "space", function() awful.layout.inc(1) end,
         { description = "select next", group = "layout" }),
-    awful.key({ modkey, "Shift" }, "space", function() awful.layout.inc(-1) end,
+    awful.key({ winkey, "Shift" }, "space", function() awful.layout.inc(-1) end,
         { description = "select previous", group = "layout" }),
 
-    awful.key({ modkey, "Control" }, "n",
+    awful.key({ winkey, "Control" }, "n",
         function()
             local c = awful.client.restore()
             -- Focus restored client
@@ -89,10 +95,12 @@ local globalkeys = gears.table.join(
         { description = "restore minimized", group = "client" }),
 
     -- Prompt
-    awful.key({ modkey }, "r", function() awful.screen.focused().mypromptbox:run() end,
+    -- awful.key({ winkey }, "r", function() awful.screen.focused().mypromptbox:run() end,
+    --     { description = "run prompt", group = "launcher" }),
+    awful.key({ winkey }, "r", function() awful.spawn.with_shell("~/.nix-profile/bin/rofi -show drun") end,
         { description = "run prompt", group = "launcher" }),
 
-    awful.key({ modkey }, "x",
+    awful.key({ winkey }, "x",
         function()
             awful.prompt.run {
                 prompt       = "Run Lua code: ",
@@ -103,7 +111,7 @@ local globalkeys = gears.table.join(
         end,
         { description = "lua execute prompt", group = "awesome" }),
     -- Menubar
-    awful.key({ modkey }, "p", function() menubar.show() end,
+    awful.key({ winkey }, "p", function() menubar.show() end,
         { description = "show the menubar", group = "launcher" })
 )
 
@@ -113,7 +121,7 @@ local globalkeys = gears.table.join(
 for i = 1, 9 do
     globalkeys = gears.table.join(globalkeys,
         -- View tag only.
-        awful.key({ modkey }, "#" .. i + 9,
+        awful.key({ winkey }, "#" .. i + 9,
             function()
                 local screen = awful.screen.focused()
                 local tag = screen.tags[i]
@@ -123,7 +131,7 @@ for i = 1, 9 do
             end,
             { description = "view tag #" .. i, group = "tag" }),
         -- Toggle tag display.
-        awful.key({ modkey, "Control" }, "#" .. i + 9,
+        awful.key({ winkey, "Control" }, "#" .. i + 9,
             function()
                 local screen = awful.screen.focused()
                 local tag = screen.tags[i]
@@ -133,7 +141,7 @@ for i = 1, 9 do
             end,
             { description = "toggle tag #" .. i, group = "tag" }),
         -- Move client to tag.
-        awful.key({ modkey, "Shift" }, "#" .. i + 9,
+        awful.key({ winkey, "Shift" }, "#" .. i + 9,
             function()
                 if client.focus then
                     local tag = client.focus.screen.tags[i]
@@ -144,7 +152,7 @@ for i = 1, 9 do
             end,
             { description = "move focused client to tag #" .. i, group = "tag" }),
         -- Toggle tag on focused client.
-        awful.key({ modkey, "Control", "Shift" }, "#" .. i + 9,
+        awful.key({ winkey, "Control", "Shift" }, "#" .. i + 9,
             function()
                 if client.focus then
                     local tag = client.focus.screen.tags[i]
@@ -157,5 +165,4 @@ for i = 1, 9 do
     )
 end
 
-
-root.keys(globalkeys)
+return globalkeys

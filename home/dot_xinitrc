@@ -1,4 +1,8 @@
+# Startup programs
 picom &
 nm-applet &
 blueman-applet &
-exec dbus-run-session awesome
+
+# Window Manager
+# to view logs, use `tail -f` on the below cache files
+exec dbus-run-session awesome >> ~/.cache/awesome/stdout 2>> ~/.cache/awesome/stderr

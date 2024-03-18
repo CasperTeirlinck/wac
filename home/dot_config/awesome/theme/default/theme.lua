@@ -1,6 +1,3 @@
----------------------------
--- Default awesome theme --
----------------------------
 local gears        = require("gears")
 
 local theme_assets = require("beautiful.theme_assets")
@@ -31,17 +28,17 @@ theme.fg_focus           = "#ffffff"
 theme.fg_urgent          = "#ffffff"
 theme.fg_minimize        = "#ffffff"
 
-theme.useless_gap        = dpi(0)
+theme.useless_gap        = dpi(5)
 -- theme.border_width       = dpi(3)
 -- theme.border_width_focus = dpi(3)
-theme.border_width       = dpi(0)
-theme.border_width_focus = dpi(0)
+theme.border_width       = dpi(2)
+theme.border_width_focus = dpi(2)
 -- theme.border_normal                             = "#00000000"
 -- theme.border_focus                              = "#81a2be"
 theme.border_normal      = "#1d1f21"
 -- theme.border_focus                              = "#81a2be40"
--- theme.border_focus       = "#556a7d"
-theme.border_focus       = theme.border_normal
+theme.border_focus       = "#556a7d"
+-- theme.border_focus       = theme.border_normal
 theme.border_marked      = "#91231c"
 
 theme.wallpaper          = os.getenv("HOME") .. "/.dotfiles/assets/wallpapers/forest.jpg"

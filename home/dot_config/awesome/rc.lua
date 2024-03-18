@@ -6,11 +6,11 @@ local awful      = require("awful")
 local wibox      = require("wibox")
 local beautiful  = require("beautiful")
 local naughty    = require("naughty")
-local menubar    = require("menubar")
 local xresources = require("beautiful.xresources")
-local dpi        = xresources.apply_dpi
 
--- Error handling
+local dpi        = xresources.apply_dpi
+local winkey     = "Mod4"
+
 if awesome.startup_errors then
     naughty.notify({
         preset = naughty.config.presets.critical,
@@ -25,7 +25,6 @@ do
             return
         end
         in_error = true
-
         naughty.notify({
             preset = naughty.config.presets.critical,
             title = "Oops, an error happened!",
@@ -35,20 +34,10 @@ do
     end)
 end
 
--- Variable definitions
--- beautiful.init(gears.filesystem.get_themes_dir() .. "default/theme.lua")
-beautiful.init(gears.filesystem.get_configuration_dir() .. "themes/default/theme.lua")
+require("theme")
 
 -- Bling utilities: https://github.com/BlingCorp/bling
 -- local bling = require("bling")
-
--- This is used later as the default terminal and editor to run.
-terminal = "x-terminal-emulator"
--- terminal = "alacritty"
-editor = os.getenv("EDITOR") or "editor"
-editor_cmd = terminal .. " -e " .. editor
-
-modkey = "Mod4"
 
 awful.layout.layouts = {
     -- bling.layout.mstab,
@@ -81,18 +70,16 @@ launcher = awful.widget.launcher({
     menu = mainmenu
 })
 
-menubar.utils.terminal = terminal
-
 mykeyboardlayout = awful.widget.keyboardlayout()
 
 -- Wibar
 local taglist_buttons = gears.table.join(awful.button({}, 1, function(t)
     t:view_only()
-end), awful.button({ modkey }, 1, function(t)
+end), awful.button({ winkey }, 1, function(t)
     if client.focus then
         client.focus:move_to_tag(t)
     end
-end), awful.button({}, 3, awful.tag.viewtoggle), awful.button({ modkey }, 3, function(t)
+end), awful.button({}, 3, awful.tag.viewtoggle), awful.button({ winkey }, 3, function(t)
     if client.focus then
         client.focus:toggle_tag(t)
     end
@@ -194,217 +181,9 @@ awful.screen.connect_for_each_screen(function(s)
     }
 end)
 
--- Mouse bindings
-root.buttons(gears.table.join(
-    awful.button({}, 3, function() mainmenu:toggle() end),
-    awful.button({}, 4, awful.tag.viewnext),
-    awful.button({}, 5, awful.tag.viewprev)
-))
+root.buttons(require("mappings.global_mouse"))
+root.keys(require("mappings.global_keys"))
 
--- Key bindings
-require("mappings.global_keys")
+require("clients")
 
-clientbuttons = gears.table.join(
-    awful.button({}, 1, function(c)
-        c:emit_signal("request::activate", "mouse_click", { raise = true })
-    end),
-    awful.button({ modkey }, 1, function(c)
-        c:emit_signal("request::activate", "mouse_click", { raise = true })
-        awful.mouse.client.move(c)
-    end),
-    awful.button({ modkey }, 3, function(c)
-        c:emit_signal("request::activate", "mouse_click", { raise = true })
-        awful.mouse.client.resize(c)
-    end)
-)
-
--- Rules to apply to new clients
-awful.rules.rules = {
-    -- All clients
-    {
-        rule = {},
-        properties = {
-            border_width = beautiful.border_width,
-            border_color = beautiful.border_normal,
-            focus = awful.client.focus.filter,
-            raise = true,
-            keys = require("mappings.client_keys"),
-            buttons = clientbuttons,
-            screen = awful.screen.preferred,
-            placement = awful.placement.no_overlap + awful.placement.no_offscreen
-        }
-    },
-    -- Floating clients
-    {
-        rule_any = {
-            instance = {
-                "DTA",   -- Firefox addon DownThemAll.
-                "copyq", -- Includes session name in class.
-                "pinentry"
-            },
-            class = {
-                "Arandr",
-                "Blueman-manager",
-                "Gpick",
-                "Kruler",
-                "MessageWin",  -- kalarm.
-                "Sxiv",
-                "Tor Browser", -- Needs a fixed window size to avoid fingerprinting by screen size.
-                "Wpa_gui",
-                "veromix",
-                "xtightvncviewer",
-            },
-            -- Note that the name property shown in xprop might be set slightly after creation of the client
-            -- and the name shown there might not match defined rules here.
-            name = {
-                "Event Tester", -- xev.
-                "Pick"          -- color picker
-            },
-            role = {
-                "AlarmWindow",   -- Thunderbird's calendar.
-                "ConfigManager", -- Thunderbird's about:config.
-                "pop-up"         -- e.g. Google Chrome's (detached) Developer Tools.
-            }
-        },
-        properties = { floating = true }
-    },
-    -- Add titlebars to normal clients and dialogs
-    {
-        rule_any = { type = { "normal", "dialog" } },
-        properties = { titlebars_enabled = true }
-    }
-}
-
-function maximized_handler(c)
-    if c.maximized then
-        -- Hide titlebar
-        awful.titlebar.hide(c)
-        -- Hide border
-        c.border_width = 0
-    else
-        awful.titlebar.show(c)
-        c.border_width = beautiful.border_width
-    end
-end
-
--- Signals
-client.connect_signal("manage", function(c)
-    if awesome.startup and not c.size_hints.user_position and not c.size_hints.program_position then
-        -- Prevent clients from being unreachable after screen count changes.
-        awful.placement.no_offscreen(c)
-    end
-
-    maximized_handler(c)
-
-    -- Rounded corners
-    -- c.shape = function(cr, w, h)
-    --     gears.shape.rounded_rect(cr, w, h, 10)
-    -- end
-end)
-
-client.connect_signal("property::maximized", function(c)
-    maximized_handler(c)
-end)
-
--- Double click handler
-function double_click_handler(double_click_event)
-    if double_click_timer then
-        double_click_timer:stop()
-        double_click_timer = nil
-        return true
-    end
-    double_click_timer = gears.timer.start_new(0.20, function()
-        double_click_timer = nil
-        return false
-    end)
-end
-
--- Add a titlebar if titlebars_enabled is set to true in the rules.
-client.connect_signal("request::titlebars", function(c)
-    local buttons = gears.table.join(
-        awful.button({}, 1, function()
-            c:emit_signal("request::activate", "titlebar", {
-                raise = true
-            })
-            -- Maximize on double click
-            if double_click_handler() then
-                c.maximized = not c.maximized
-                c:raise()
-                -- Else just move
-            else
-                awful.mouse.client.move(c)
-            end
-        end),
-        awful.button({}, 2, function()
-            c:emit_signal("request::activate", "titlebar", {
-                raise = true
-            })
-            -- Minimize on middle click
-            c.minimized = true
-            c:raise()
-        end),
-        awful.button({}, 3, function()
-            c:emit_signal("request::activate", "titlebar", {
-                raise = true
-            })
-            awful.mouse.client.resize(c)
-        end)
-    )
-
-    awful.titlebar(c, { size = 25 }):setup {
-        {
-            -- Left
-            -- awful.titlebar.widget.iconwidget(c),
-            buttons = buttons,
-            layout = wibox.layout.fixed.horizontal
-        },
-        {
-            -- Middle
-            -- {
-            -- Title
-            -- align  = "center",
-            -- widget = awful.titlebar.widget.titlewidget(c)
-            -- },
-            buttons = buttons,
-            layout = wibox.layout.flex.horizontal
-        },
-        {
-            -- Right
-            {
-                -- awful.titlebar.widget.floatingbutton (c),
-                -- awful.titlebar.widget.maximizedbutton(c),
-                -- awful.titlebar.widget.stickybutton   (c),
-                -- awful.titlebar.widget.ontopbutton    (c),
-                -- awful.titlebar.widget.minimizebutton    (c),
-                awful.titlebar.widget.closebutton(c),
-                layout = wibox.layout.fixed.horizontal()
-            },
-            widget = wibox.container.margin,
-            right = dpi(5)
-        },
-        layout = wibox.layout.align.horizontal
-    }
-end)
-
-local function apply_borders(c)
-    local s = awful.screen.focused()
-
-    if not c.floating then
-        if #s.tiled_clients > 1 then
-            c.border_color = beautiful.border_focus
-        else
-            c.border_color = beautiful.border_normal
-        end
-    else
-        c.border_color = "#828482"
-    end
-end
-
-client.connect_signal("property::floating", apply_borders)
-client.connect_signal("focus", apply_borders)
-client.connect_signal("unfocus", function(c)
-    c.border_color = beautiful.border_normal
-end)
-
--- Autostart Applications
 -- awful.spawn.with_shell("picom")

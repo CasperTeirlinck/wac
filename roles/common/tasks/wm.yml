@@ -7,6 +7,19 @@
     state: latest
     update_cache: yes
 
+- name: Disable display manager
+  become: true
+  block:
+    - name: Get current systemd default
+      command: systemctl get-default
+      changed_when: false
+      register: systemdefault
+
+    - name: Set default to multi-user target
+      command: systemctl set-default multi-user
+      when: "'graphical' in systemdefault.stdout"
+  tags: x11
+
 - name: Set mouse options
   become: true
   ansible.builtin.blockinfile:
