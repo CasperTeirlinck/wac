@@ -9,6 +9,8 @@ local naughty   = require("naughty")
 
 local winkey    = "Mod4"
 
+local lain      = require("lain")
+
 if awesome.startup_errors then
     naughty.notify({
         preset = naughty.config.presets.critical,
@@ -104,6 +106,16 @@ screen.connect_signal("property::geometry", set_wallpaper)
 
 awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
+
+    s.quake = lain.util.quake({
+        app = "alacritty",
+        argname = "--title %s",
+        extra = "--class QuakeDD -e tmux",
+        visible = true,
+        border = 0,
+        height = 0.5,
+        screen = s
+    })
 
     awful.tag({ "1", "2", "3", "4", "5", "6", "7", "8", "9" }, s, awful.layout.layouts[1])
 

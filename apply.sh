@@ -17,7 +17,7 @@ elif [ "$1" == "ansible" ]; then
         ansible-playbook ~/.dotfiles/main.yml -K --tags ""$2""
     fi
 elif [ "$1" == "nix" ]; then
-    home-manager switch --flake ~/.dotfiles/home-manager
+    home-manager switch --impure --flake ~/.dotfiles/home-manager
 elif [ "$1" == "chezmoi" ]; then
     chezmoi apply
 fi

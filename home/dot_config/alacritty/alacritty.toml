@@ -1,3 +1,11 @@
+import = [
+    "~/.config/alacritty/themes/DjangoRebornAgain.toml"
+]
+
 [font]
+size = 8
 normal = { family = "Fira Code Nerd Font", style = "Regular" }
 bold = { family = "Fira Code Nerd Font", style = "Bold" }
+
+[window]
+padding = { x =5, y = 5 }

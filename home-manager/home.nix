@@ -23,14 +23,10 @@ in {
     # Cannot use nixGL.auto.nixGLDefault because it is impure and not allowed with flakes,
     # if needed, figure something out by e.g. installing nixGL outside home-manager? With nix-channel? Or use --impure?
     # see: https://github.com/nix-community/nixGL/issues/114
-    # nixGL.auto.nixGLDefault
     pkgs.nixgl.nixGLIntel
 
-    pkgs.brave
-    pkgs.vscode
-
     # (nixGLWrap pkgs.wezterm)
-    (nixGLWrap pkgs.alacritty)
+    # (nixGLWrap pkgs.alacritty)
     pkgs.arandr
     pkgs.rofi
     pkgs.chezmoi

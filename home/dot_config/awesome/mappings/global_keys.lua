@@ -55,13 +55,17 @@ local globalkeys = gears.table.join(
         end,
         { description = "go back", group = "client" }),
 
-    -- Standard program
+    -- Launh Programs
     awful.key({ winkey, }, "Return", function() awful.spawn(terminal) end,
         { description = "open a terminal", group = "launcher" }),
     awful.key({ altkey, }, "space", function() awful.spawn("rofi -show drun") end,
         { description = "open rofi", group = "launcher" }),
     awful.key({ winkey, "Shift" }, "c", function() awful.spawn("eyedropper") end,
         { description = "open color picker", group = "launcher" }),
+    awful.key({ winkey, }, "`", function() awful.screen.focused().quake:toggle() end,
+        { description = "quake", group = "launcher" }),
+
+    -- Other
     awful.key({ winkey, "Control" }, "r", awesome.restart,
         { description = "reload awesome", group = "awesome" }),
     awful.key({ winkey, "Shift" }, "q", awesome.quit,

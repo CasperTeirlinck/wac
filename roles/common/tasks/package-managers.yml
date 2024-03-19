@@ -26,3 +26,34 @@
   args:
     executable: /bin/bash
     creates: /home/linuxbrew/.linuxbrew/bin/brew
+
+- name: Install flatpak
+  block:
+    - name: Install Flatpak [1/2]
+      become: true
+      apt:
+        name:
+          - flatpak
+        state: latest
+        update_cache: yes
+    - name: Install Flatpak [2/2]
+      become: true
+      shell: |
+        set -o pipefail &&
+        /usr/bin/flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      args:
+        executable: /bin/bash
+
+# Asdf tool version manager
+# NOTE: some tools (php, ..) need openssl < 3.0 to compile:
+#   $ mv /usr/bin/openssl /usr/bin/openssl-backup
+#   $ ln -s $(brew --prefix openssl@1.1) /usr/bin/openssl
+#   # Install e.g. php
+#   $ trash /usr/bin/openssl
+#   $ mv /usr/bin/openssl-backup /usr/bin/openssl
+- name: Install asdf
+  git:
+    repo: https://github.com/asdf-vm/asdf.git
+    dest: "{{ ansible_env.HOME }}/.asdf"
+    version: v0.11.1
+    single_branch: yes

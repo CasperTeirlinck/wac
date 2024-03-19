@@ -37,3 +37,12 @@
     state: present
     create: true
   tags: x11
+
+- name: Install lain utils for AwesomeWM
+  git:
+    repo: https://github.com/lcpz/lain.git
+    dest: "{{ ansible_env.HOME }}/.config/awesome/lain"
+    version: master
+    depth: 1
+    single_branch: yes
+  tags: lain

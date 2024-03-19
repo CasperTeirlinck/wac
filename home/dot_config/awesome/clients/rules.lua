@@ -1,5 +1,6 @@
-local awful       = require("awful")
-local beautiful   = require("beautiful")
+local awful     = require("awful")
+local beautiful = require("beautiful")
+require("awful.autofocus")
 
 awful.rules.rules = {
     -- All clients

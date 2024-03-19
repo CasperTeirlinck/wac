@@ -4,10 +4,10 @@ local beautiful = require("beautiful")
 
 function Maximized_handler(c)
     if c.maximized then
-        awful.titlebar.hide(c)
+        -- awful.titlebar.hide(c)
         c.border_width = 0
     else
-        awful.titlebar.show(c)
+        -- awful.titlebar.show(c)
         c.border_width = beautiful.border_width
     end
 end

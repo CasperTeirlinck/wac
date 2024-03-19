@@ -1,17 +1,67 @@
+- name: Add apt keys
+  become: true
+  block:
+    - name: Add mirosoft key
+      shell: |
+        set -o pipefail &&
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.microsoft.gpg 
+      args:
+        executable: /bin/bash
+        creates: /etc/apt/trusted.gpg.d/packages.microsoft.gpg
+    - name: Add brave key
+      shell: |
+        set -o pipefail &&
+        curl -sSL https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg | gpg --dearmor > /usr/share/keyrings/brave-browser-archive-keyring.gpg 
+      args:
+        executable: /bin/bash
+        creates: /usr/share/keyrings/brave-browser-archive-keyring.gpg 
+    - name: Set permissions
+      file:
+        path: "{{ item }}"
+        state: file
+        owner: root
+        group: root
+        mode: "644" 
+      loop:
+        - /etc/apt/trusted.gpg.d/packages.microsoft.gpg
+  tags: apt
+
+- name: Add apt repositories
+  become: true
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop:
+    # alacritty
+    - ppa:aslatter/ppa 
+    # vscode
+    - deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
+    # brave
+    - deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main
+    # build dependencies
+    - deb-src http://archive.ubuntu.com/ubuntu/ {{ ansible_distribution_release }} main
+  tags: apt
+
 - name: Install packages (apt)
   become: true
   apt:
     name:
+      # ↓ Common
       - software-properties-common
       - libfuse2 # needed for running appimages
-      - gnome-keyring # needed for apps to store/share secrets
-      # ↓ needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
+      # ↓ Needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
       - build-essential
       - procps
       - curl
       - file
+      # ↓ Other
+      - alacritty
+      - brave-browser
+      - code
+      # - gnome-keyring # needed for apps to store/share secrets
     state: latest
     update_cache: yes
+  tags: apt
 
 - name: Install packages (brew)
   block:
@@ -28,3 +78,4 @@
         creates: /home/linuxbrew/.linuxbrew/opt/{{ item }}
       loop:
         - wezterm
+  tags: brew
