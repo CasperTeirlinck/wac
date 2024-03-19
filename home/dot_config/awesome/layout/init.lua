@@ -2,6 +2,7 @@ local awful          = require("awful")
 
 awful.layout.layouts = {
     -- bling.layout.mstab,
+    require("layout.splitstack"),
     awful.layout.suit.floating
     -- awful.layout.suit.tile,
     -- awful.layout.suit.tile.left,

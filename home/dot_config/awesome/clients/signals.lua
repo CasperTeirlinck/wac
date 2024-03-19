@@ -17,4 +17,4 @@ client.connect_signal("focus", Apply_borders)
 
 client.connect_signal("unfocus", function(c) c.border_color = beautiful.border_normal end)
 
-client.connect_signal("request::titlebars", require("clients.titlebar"))
+-- client.connect_signal("request::titlebars", require("clients.titlebar"))

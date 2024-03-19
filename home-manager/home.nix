@@ -42,6 +42,8 @@ in {
     pkgs.trash-cli
     pkgs.tmux
     pkgs.neovim
+    pkgs.neofetch
+    pkgs.eyedropper
     (pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; })
 
     # # You can also create simple shell scripts directly inside your

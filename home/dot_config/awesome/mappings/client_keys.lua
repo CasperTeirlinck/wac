@@ -23,5 +23,7 @@ return gears.table.join(
     awful.key({ altkey, }, "f", awful.client.floating.toggle,
         { description = "toggle floating", group = "client" }),
     awful.key({ winkey, }, "o", function(c) c:move_to_screen() end,
-        { description = "move to screen", group = "client" })
+        { description = "move to screen", group = "client" }),
+    awful.key({ winkey, }, "q", function(c) c:kill() end,
+        { description = "close", group = "client" })
 )

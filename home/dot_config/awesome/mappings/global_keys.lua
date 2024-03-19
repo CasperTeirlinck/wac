@@ -60,7 +60,8 @@ local globalkeys = gears.table.join(
         { description = "open a terminal", group = "launcher" }),
     awful.key({ altkey, }, "space", function() awful.spawn("rofi -show drun") end,
         { description = "open rofi", group = "launcher" }),
-
+    awful.key({ winkey, "Shift" }, "c", function() awful.spawn("eyedropper") end,
+        { description = "open color picker", group = "launcher" }),
     awful.key({ winkey, "Control" }, "r", awesome.restart,
         { description = "reload awesome", group = "awesome" }),
     awful.key({ winkey, "Shift" }, "q", awesome.quit,
