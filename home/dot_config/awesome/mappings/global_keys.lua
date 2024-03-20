@@ -2,7 +2,7 @@ local gears = require("gears")
 local awful = require("awful")
 local hotkeys_popup = require("awful.hotkeys_popup")
 
-local terminal = "/home/linuxbrew/.linuxbrew/bin/wezterm" -- x-terminal-emulator, alacritty
+local terminal = "alacritty" --"/home/linuxbrew/.linuxbrew/bin/wezterm" -- x-terminal-emulator, alacritty
 local winkey = "Mod4"
 local altkey = "Mod1"
 

@@ -52,6 +52,14 @@ awful.rules.rules = {
         },
         properties = { floating = true }
     },
+    {
+        rule_any = {
+            class = { "QuakeDD" }
+        },
+        properties = {
+            border_width = 0,
+        }
+    },
     -- {
     --     rule_any = { type = { "normal", "dialog" } },
     --     properties = { titlebars_enabled = true }

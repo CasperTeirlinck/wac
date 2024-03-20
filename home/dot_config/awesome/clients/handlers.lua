@@ -8,6 +8,9 @@ function Maximized_handler(c)
         c.border_width = 0
     else
         -- awful.titlebar.show(c)
+        if c.class == "QuakeDD" then
+            return
+        end
         c.border_width = beautiful.border_width
     end
 end
