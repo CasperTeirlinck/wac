@@ -38,6 +38,7 @@ in {
     pkgs.trash-cli
     pkgs.tmux
     pkgs.neovim
+    pkgs.atuin
     pkgs.neofetch
     pkgs.eyedropper
     (pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; })
