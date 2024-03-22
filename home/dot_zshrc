@@ -92,7 +92,10 @@ export FZF_DEFAULT_OPTS='
 '
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions --color=always $realpath'
 zstyle ':fzf-tab:*' fzf-bindings 'tab:accept'
-bindkey '^[[A' fzf-history-widget
+bindkey '^[[A' fzf-history-widget # gets overwritten by atuin at the moment
+
+# Atuin
+eval "$(atuin init zsh)"
 
 # Aliases
 source $HOME/.bash_aliases
