@@ -18,6 +18,8 @@ screen.connect_signal("property::geometry", set_wallpaper)
 awful.screen.connect_for_each_screen(function(s)
     set_wallpaper(s)
 
+    -- s.padding = { top = "10", bottom = "10" }
+
     s.mypromptbox = awful.widget.prompt()
     require("layout.bar.layouts")(s)
     require("layout.bar.taglist")(s)

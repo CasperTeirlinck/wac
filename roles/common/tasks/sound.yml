@@ -1,0 +1,8 @@
+- name: Install bluetooth
+  become: true
+  apt:
+    name:
+      - alsa-utils # alsa: linux kernel sound module
+      - pavucontrol # pulseaudio gui
+    state: latest
+    update_cache: yes

@@ -28,6 +28,9 @@ in {
     # (nixGLWrap pkgs.wezterm)
     # (nixGLWrap pkgs.alacritty)
     pkgs.arandr
+    pkgs.pasystray
+    pkgs.cbatticon
+    pkgs.gnome.nautilus
     pkgs.rofi
     pkgs.chezmoi
     pkgs.zsh
@@ -79,6 +82,42 @@ in {
     userEmail = "casperteirlinck@gmail.com";
   };
 
+  # dconf = {
+  #   enable = true;
+  # };
+
+  # gtk = {
+  #   enable = true;
+  #   iconTheme = {
+  #     name = "Papirus-Dark";
+  #     package = pkgs.papirus-icon-theme;
+  #   };
+  #   cursorTheme = {
+  #     name = "Bibata-Modern-Classic";
+  #   };
+  #   # gtk2 = {
+  #   #   extraConfig = ""
+  #   #   # gtk-theme-name="Adwaita-dark"
+  #   #   # gtk-icon-theme-name="Papirus"
+  #   #   # gtk-cursor-theme-name="Bibata-Modern-Classic"
+  #   #   # gtk-xft-antialias=1
+  #   # };
+  #   gtk3 = {
+  #     extraConfig = {
+  #       gtk-application-prefer-dark-theme = true;
+  #     };
+  #   };
+  #   # theme = {
+  #   #   name = "Catppuccin-Macchiato-Compact-Pink-Dark";
+  #   #   package = pkgs.catppuccin-gtk.override {
+  #   #     accents = [ "pink" ];
+  #   #     size = "compact";
+  #   #     tweaks = [ "rimless" "black" ];
+  #   #     variant = "macchiato";
+  #   #   };
+  #   # };
+  # };
+  
   home.pointerCursor = 
     let 
       getFrom = url: hash: name: {
@@ -101,7 +140,6 @@ in {
         "sha256-vn+91iKXWo++4bi3m9cmdRAXFMeAqLij+SXaSChedow="
         "Bibata-Modern-Classic";
 
-  # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
   targets.genericLinux.enable = true;

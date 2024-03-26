@@ -37,6 +37,7 @@ awful.rules.rules = {
                 "veromix",
                 "xtightvncviewer",
                 "eyedropper",
+                "Pavucontrol"
             },
             -- Note that the name property shown in xprop might be set slightly after creation of the client
             -- and the name shown there might not match defined rules here.
@@ -57,7 +58,8 @@ awful.rules.rules = {
             class = { "QuakeDD" }
         },
         properties = {
-            border_width = 0,
+            -- border_width = 0,
+            -- border_color = "#ffffff00"
         }
     },
     -- {

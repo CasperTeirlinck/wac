@@ -4,7 +4,7 @@ local winkey = "Mod4"
 local altkey = "Mod1"
 
 return gears.table.join(
-    awful.key({ winkey, }, "f",
+    awful.key({ winkey, }, "z",
         function(c)
             c.fullscreen = not c.fullscreen
             c:raise()

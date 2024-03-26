@@ -1,27 +1,23 @@
-local gears        = require("gears")
+local gears              = require("gears")
 
-local theme_assets = require("beautiful.theme_assets")
-local xresources   = require("beautiful.xresources")
-local dpi          = xresources.apply_dpi
+local theme_assets       = require("beautiful.theme_assets")
+local xresources         = require("beautiful.xresources")
+local dpi                = xresources.apply_dpi
 
-local gfs          = require("gears.filesystem")
-local themes_path  = gfs.get_configuration_dir() .. "themes/"
-local assets_path  = os.getenv("HOME") .. "/.dotfiles/assets/awesome/theme/"
+local gfs                = require("gears.filesystem")
+local themes_path        = gfs.get_configuration_dir() .. "themes/"
+local assets_path        = os.getenv("HOME") .. "/.dotfiles/assets/awesome/theme/"
 
-local theme        = {}
+local theme              = {}
 
-theme.font         = "sans 8"
+theme.font               = "sans 8"
 
--- theme.bg_normal                                 = "#222222"
--- theme.bg_focus                                  = "#535d6c"
-theme.bg_urgent    = "#ff0000"
-theme.bg_minimize  = "#444444"
-theme.bg_systray   = theme.bg_normal
+theme.bg_urgent          = "#ff0000"
+theme.bg_minimize        = "#444444"
+theme.bg_systray         = theme.bg_normal
 
-theme.bg_normal    = "#1d1f21"
-theme.bg_focus     = "#292929"
--- theme.bg_focus           = "#1d1f21"
-
+theme.bg_normal          = "#1d1f21"
+theme.bg_focus           = "#292929"
 
 theme.fg_normal          = "#aaaaaa"
 theme.fg_focus           = "#ffffff"
@@ -29,16 +25,10 @@ theme.fg_urgent          = "#ffffff"
 theme.fg_minimize        = "#ffffff"
 
 theme.useless_gap        = dpi(5)
--- theme.border_width       = dpi(3)
--- theme.border_width_focus = dpi(3)
 theme.border_width       = dpi(2)
 theme.border_width_focus = dpi(2)
--- theme.border_normal                             = "#00000000"
--- theme.border_focus                              = "#81a2be"
-theme.border_normal      = "#1d1f21"
--- theme.border_focus                              = "#81a2be40"
-theme.border_focus       = "#556a7d"
--- theme.border_focus       = theme.border_normal
+theme.border_normal      = "#00000000"
+theme.border_focus       = "#24503201"
 theme.border_marked      = "#91231c"
 
 theme.wallpaper          = os.getenv("HOME") .. "/.dotfiles/assets/wallpapers/forest.jpg"
@@ -85,8 +75,6 @@ theme.menu_width                                = dpi(100)
 --theme.bg_widget = "#cc0000"
 
 -- Define the image to load
--- theme.titlebar_close_button_normal              = themes_path .. "default/titlebar/close_normal.png"
--- theme.titlebar_close_button_focus               = themes_path .. "default/titlebar/close_focus.png"
 theme.titlebar_close_button_normal              = assets_path .. "titlebar/close_normal.svg"
 theme.titlebar_close_button_focus               = assets_path .. "titlebar/close_normal.svg"
 

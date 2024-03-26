@@ -3,6 +3,7 @@ xrdb -merge -I$HOME ~/.Xresources
 # Startup programs
 picom &
 nm-applet &
+pasystray &
 blueman-applet &
 
 # Window Manager

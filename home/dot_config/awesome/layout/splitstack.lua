@@ -1,7 +1,6 @@
 local awful = require("awful")
 local gears = require("gears")
 local wibox = require("wibox")
-local beautiful = require("beautiful")
 local tab = require("layout.widget.tab")
 
 -- | - | - | --
@@ -20,25 +19,37 @@ layout.name = "splitstack"
 local function update_tabbar(clients, tag, area)
     local s = tag.screen
 
-    local tabbar = wibox.layout.flex.horizontal()
-    for idx, c in ipairs(clients) do
-        print(c.name or c.class)
-        for k, v in pairs(awful.client.idx(c)) do
-            print(k, v)
-        end
+    local tabbar = wibox.widget {
+        spacing = tag.gap,
+        layout  = wibox.layout.flex.horizontal
+    }
+    for _, c in ipairs(clients) do
+        -- print(c.name or c.class)
+        -- for k, v in pairs(awful.client.idx(c)) do
+        --     print(k, v)
+        -- end
 
-        local focused = false
-        tabbar:add(tab.create(c, focused))
+        tabbar:add(tab.create(c))
+    end
+    -- maximused clients are normally not included in the layout's client list
+    for _, c in pairs(tag:clients()) do
+        if c.maximized then
+            tabbar:add(tab.create(c))
+        end
     end
 
     if not s["tabbar"] then
         s["tabbar"] = wibox({
             ontop = false,
-            shape = function(cr, width, height)
-                local border_radius = 3
-                gears.shape.rounded_rect(cr, width, height, border_radius)
-            end,
-            bg = beautiful.bg_normal,
+            -- shape = function(cr, width, height)
+            --     local border_radius = 3
+            --     gears.shape.rounded_rect(cr, width, height, border_radius)
+            -- end,
+            -- bg = beautiful.bg_normal,
+            -- bg = "#ffffff00",
+            -- bg = nil,
+            type = "dock",
+            bg = gears.color.transparent,
             visible = true,
         })
     end
@@ -114,7 +125,7 @@ function layout.arrange(p)
             x = area.x + ((column - 1) * area.width * width_factor),
             y = area.y + tabbar_height,
             width = width,
-            height = area.height - tabbar_height,
+            height = area.height - tabbar_height + tag.gap * 2,
         }
     end
 

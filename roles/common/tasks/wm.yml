@@ -3,6 +3,7 @@
   apt:
     name:
       - xorg
+      - brightnessctl
       - awesome
     state: latest
     update_cache: yes
@@ -38,6 +39,22 @@
     create: true
   tags: x11
 
+- name: Set touchpad options
+  become: true
+  ansible.builtin.blockinfile:
+    path: /usr/share/X11/xorg.conf.d/98-touchpad.conf
+    block: |
+      Section "InputClass"
+        Identifier "touchpad"
+        MatchIsTouchpad "on"
+        Driver "libinput"
+        Option "NaturalScrolling" "true"
+      EndSection
+    insertafter: EOF
+    state: present
+    create: true
+  tags: x11
+
 - name: Install lain utils for AwesomeWM
   git:
     repo: https://github.com/lcpz/lain.git
@@ -46,3 +63,19 @@
     depth: 1
     single_branch: yes
   tags: lain
+
+- name: Install widget utils for AwesomeWM
+  git:
+    repo: https://github.com/streetturtle/awesome-wm-widgets.git
+    dest: "{{ ansible_env.HOME }}/.config/awesome/turtlewidgets"
+    version: master
+    depth: 1
+    single_branch: yes
+  tags: turtlewidgets
+
+- name: Add user to video group (for brightness control)
+  user:
+    name: '{{ ansible_user }}'
+    groups: video
+    append: yes
+    

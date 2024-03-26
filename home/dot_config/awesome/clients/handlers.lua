@@ -5,13 +5,21 @@ local beautiful = require("beautiful")
 function Maximized_handler(c)
     if c.maximized then
         -- awful.titlebar.hide(c)
-        c.border_width = 0
+
+        local area = awful.screen.focused().workarea
+        local tabbar_height = 30
+        c:geometry({
+            x = area.x + beautiful.useless_gap * 2,
+            y = area.y + tabbar_height + beautiful.useless_gap * 2,
+            width = area.width - 4 * beautiful.useless_gap,
+            height = area.height - tabbar_height - beautiful.useless_gap * 3,
+        })
     else
         -- awful.titlebar.show(c)
-        if c.class == "QuakeDD" then
-            return
-        end
-        c.border_width = beautiful.border_width
+        -- if c.class == "QuakeDD" then
+        --     return
+        -- end
+        -- c.border_width = beautiful.border_width
     end
 end
 
@@ -30,13 +38,19 @@ end
 function Apply_borders(c)
     local s = awful.screen.focused()
 
-    if not c.floating then
-        if #s.tiled_clients > 1 then
-            c.border_color = beautiful.border_focus
-        else
-            c.border_color = beautiful.border_normal
-        end
+    if #s.tiled_clients > 1 then
+        c.border_color = beautiful.border_focus
     else
-        c.border_color = "#828482"
+        c.border_color = beautiful.border_normal
     end
+
+    -- if not c.floating then
+    --     if #s.tiled_clients > 1 then
+    --         c.border_color = beautiful.border_focus
+    --     else
+    --         c.border_color = beautiful.border_normal
+    --     end
+    -- else
+    --     c.border_color = "#828482"
+    -- end
 end
