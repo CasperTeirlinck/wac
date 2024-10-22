@@ -13,7 +13,7 @@
 
     outputs = inputs@{ nixpkgs, home-manager, darwin, ... }: 
         let 
-            hostname = builtins.exec "hostname";
+            hostname = "M604237";
         in {
         darwinConfigurations.${hostname} = darwin.lib.darwinSystem {
             system = "aarch64-darwin";
