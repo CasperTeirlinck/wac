@@ -1,5 +1,6 @@
-# WaC: Ubuntu
-Workstation as Code
+![WaC](logo.png)
+
+# WaC - Workstation as Code
 
 ## Overview
 
@@ -20,7 +21,7 @@ Workstation as Code
 2. Check configuration in:
    - `./inventory.ini`
    - `./home-manager/home.nix`
-3. Run init: `./init.sh`
+3. Run bootstrap: `./bootstrap.sh`
    > This installs core dependencies (Ansible) needed to use this repository.
 4. Run apply: `./apply.sh`
 

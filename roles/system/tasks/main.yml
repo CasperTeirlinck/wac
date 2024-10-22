@@ -1,0 +1,7 @@
+- name: "Common tasks"
+  ansible.builtin.import_tasks:
+    file: "Common/main.yml"
+
+- name: "System-specific tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['system'] }}/main.yml"

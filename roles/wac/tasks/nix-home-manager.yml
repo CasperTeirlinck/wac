@@ -1,0 +1,14 @@
+- name: Install Nix Home Manager
+  block:
+    - name: Install Nix Home Manager [1/2]
+      shell: nix-env -q | grep home-manager
+      register: nix_env_home_manager
+      changed_when: false
+      args:
+        executable: /bin/bash
+
+    - name: Install Nix Home Manager [2/2]
+      shell: nix run home-manager/master -- init --switch ~/.dotfiles/home-manager
+      args:
+        executable: /bin/bash
+      when: nix_env_home_manager.stdout == ""

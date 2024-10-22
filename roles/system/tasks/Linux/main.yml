@@ -1,0 +1,26 @@
+- name: Apt update & upgrade
+  become: true
+  apt:
+    update_cache: true
+    upgrade: full
+  changed_when: false
+
+- name: "Drivers tasks"
+  ansible.builtin.import_tasks:
+    file: "drivers.yml"
+    when: "{{ role_system_drivers }}"
+
+- name: "Network tasks"
+  ansible.builtin.import_tasks:
+    file: "network.yml"
+    when: "{{ role_system_network }}"
+
+- name: "Sound tasks"
+  ansible.builtin.import_tasks:
+    file: "sound.yml"
+    when: "{{ role_system_sound }}"
+
+- name: "Bluetooth tasks"
+  ansible.builtin.import_tasks:
+    file: "bluetooth.yml"
+    when: "{{ role_system_bt }}"

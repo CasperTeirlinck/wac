@@ -1,0 +1,6 @@
+# https://ubuntu.com/server/docs/nvidia-drivers-installation
+- name: Install drivers
+  become: true
+  command: ubuntu-drivers install
+  args:
+    creates: /proc/driver/nvidia

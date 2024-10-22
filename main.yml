@@ -1,12 +1,31 @@
 - hosts: localhost
 
   pre_tasks:
-    - name: Apt update & upgrade
-      become: true
-      apt:
-        update_cache: true
-        upgrade: full
-      changed_when: false
+    - name: "Load variables"
+      ansible.builtin.include_vars:
+        file: "vars.yml"
 
-  roles:
-    - common
+  tasks:
+    - name: "Apply system role"
+      ansible.builtin.import_role:
+        name: "system"
+        when: "{{ role_system }}"
+
+    - name: "Applt WAC role"
+      ansible.builtin.import_role:
+        name: "wac"
+
+    - name: "Apply shell role"
+      ansible.builtin.import_role:
+        name: "shell"
+        when: "{{ role_shell }}"
+
+    - name: "Apply desktop environment role"
+      ansible.builtin.import_role:
+        name: "de"
+        when: "{{ role_de }}"
+
+    - name: "Apply packages role"
+      ansible.builtin.import_role:
+        name: "packages"
+        when: "{{ role_packages }}"

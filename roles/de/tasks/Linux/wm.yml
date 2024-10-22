@@ -1,0 +1,81 @@
+- name: Install window manager
+  become: true
+  apt:
+    name:
+      - xorg
+      - brightnessctl
+      - awesome
+    state: latest
+    update_cache: yes
+
+- name: Disable display manager
+  become: true
+  block:
+    - name: Get current systemd default
+      command: systemctl get-default
+      changed_when: false
+      register: systemdefault
+
+    - name: Set default to multi-user target
+      command: systemctl set-default multi-user
+      when: "'graphical' in systemdefault.stdout"
+  tags: x11
+
+- name: Set mouse options
+  become: true
+  ansible.builtin.blockinfile:
+    path: /usr/share/X11/xorg.conf.d/99-mouse.conf
+    block: |
+      Section "InputClass"
+        Identifier "libinput pointer mouse"
+        MatchIsPointer "on"
+        MatchDevicePath "/dev/input/event*"
+        Driver "libinput"
+        Option "Accel Profile Enabled" "0 1 0"
+        Option "Accel Speed" "-0.8"
+      EndSection
+    insertafter: EOF
+    state: present
+    create: true
+  tags: x11
+
+- name: Set touchpad options
+  become: true
+  ansible.builtin.blockinfile:
+    path: /usr/share/X11/xorg.conf.d/98-touchpad.conf
+    block: |
+      Section "InputClass"
+        Identifier "touchpad"
+        MatchIsTouchpad "on"
+        Driver "libinput"
+        Option "NaturalScrolling" "true"
+      EndSection
+    insertafter: EOF
+    state: present
+    create: true
+  tags: x11
+
+- name: Install lain utils for AwesomeWM
+  git:
+    repo: https://github.com/lcpz/lain.git
+    dest: "{{ ansible_env.HOME }}/.config/awesome/lain"
+    version: master
+    depth: 1
+    single_branch: yes
+  tags: lain
+
+- name: Install widget utils for AwesomeWM
+  git:
+    repo: https://github.com/streetturtle/awesome-wm-widgets.git
+    dest: "{{ ansible_env.HOME }}/.config/awesome/turtlewidgets"
+    version: master
+    depth: 1
+    single_branch: yes
+  tags: turtlewidgets
+
+- name: Add user to video group (for brightness control)
+  user:
+    name: '{{ ansible_user }}'
+    groups: video
+    append: yes
+    
