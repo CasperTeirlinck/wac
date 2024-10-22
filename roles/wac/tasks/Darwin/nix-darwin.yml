@@ -1,18 +1,11 @@
 - name: Install Nix Darwin
   block:
-    - name: Install Nix Darwin [1/2]
-      shell: nix-env -q | grep home-manager
-      register: nix_env_home_manager
-      changed_when: false
-      args:
-        executable: /bin/bash
-
     - name: "Msg"
       debug:
         msg: "The following task can take a long time, don't close the session."
 
-    - name: Install Nix Home Manager [2/2]
+    - name: Install Nix Home Manager
       shell: nix run nix-darwin -- switch --flake ~/.dotfiles/nix/Darwin
       args:
         executable: /bin/bash
-      when: nix_env_home_manager.stdout == ""
+        creates: "/nix/var/nix/profiles/default/bin/nix"
