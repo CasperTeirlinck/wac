@@ -31,6 +31,7 @@ function main_bootstrap() {
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         python3 -m ensurepip
         pip3 install --user ansible
+        echo 'export PATH="$PATH:$(pip3 show ansible | grep Location | awk "{print \$2}" | sed "s|/lib/python/site-packages|/bin|")"' >> ~/.zshrc
     fi
 
     echo "🦎 Ready to apply WAC!"
