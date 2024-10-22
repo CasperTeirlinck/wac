@@ -1,0 +1,3 @@
+- name: "Package manager tasks"
+  ansible.builtin.import_tasks:
+    file: "package-managers.yml"

@@ -1,0 +1,4 @@
+apply_drivers: false
+apply_bluetooth: false
+apply_network: false
+apply_sound: false

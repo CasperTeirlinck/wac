@@ -5,22 +5,22 @@
     upgrade: full
   changed_when: false
 
-- name: "Drivers tasks"
-  ansible.builtin.import_tasks:
+- name: "Driver tasks"
+  ansible.builtin.include_tasks:
     file: "drivers.yml"
-    when: "{{ role_system_drivers }}"
+  when: apply_drivers
 
 - name: "Network tasks"
-  ansible.builtin.import_tasks:
+  ansible.builtin.include_tasks:
     file: "network.yml"
-    when: "{{ role_system_network }}"
+  when: apply_network
 
 - name: "Sound tasks"
-  ansible.builtin.import_tasks:
+  ansible.builtin.include_tasks:
     file: "sound.yml"
-    when: "{{ role_system_sound }}"
+  when: apply_sound
 
 - name: "Bluetooth tasks"
-  ansible.builtin.import_tasks:
+  ansible.builtin.include_tasks:
     file: "bluetooth.yml"
-    when: "{{ role_system_bt }}"
+  when: apply_bluetooth

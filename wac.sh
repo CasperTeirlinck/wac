@@ -29,8 +29,11 @@ function main_bootstrap() {
         sudo add-apt-repository --yes --update ppa:ansible/ansible
         sudo apt install ansible
     elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "test"
+        python3 -m ensurepip
+        pip install --user ansible
     fi
+
+    echo "🦎 Ready to apply WAC!"
 }
 
 

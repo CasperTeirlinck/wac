@@ -9,23 +9,28 @@
     - name: "Apply system role"
       ansible.builtin.import_role:
         name: "system"
-        when: "{{ role_system }}"
+      vars:
+        apply_bluetooth: "{{ role_system_bt }}"
+        apply_drivers: "{{ role_system_drivers }}"
+        apply_sound: "{{ role_system_sound }}"
+        apply_network: "{{ role_system_network }}"
+      when: role_system
 
-    - name: "Applt WAC role"
+    - name: "Apply WAC role"
       ansible.builtin.import_role:
         name: "wac"
 
-    - name: "Apply shell role"
-      ansible.builtin.import_role:
-        name: "shell"
-        when: "{{ role_shell }}"
+    # - name: "Apply shell role"
+    #   ansible.builtin.import_role:
+    #     name: "shell"
+    #   when: "{{ role_shell }}"
 
-    - name: "Apply desktop environment role"
-      ansible.builtin.import_role:
-        name: "de"
-        when: "{{ role_de }}"
+    # - name: "Apply desktop environment role"
+    #   ansible.builtin.import_role:
+    #     name: "de"
+    #   when: "{{ role_de }}"
 
-    - name: "Apply packages role"
-      ansible.builtin.import_role:
-        name: "packages"
-        when: "{{ role_packages }}"
+    # - name: "Apply packages role"
+    #   ansible.builtin.import_role:
+    #     name: "packages"
+    #   when: "{{ role_packages }}"
