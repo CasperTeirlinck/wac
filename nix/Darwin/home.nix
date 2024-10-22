@@ -12,5 +12,11 @@
   home.file = {
   };
 
+  programs.git = {
+    enable = true;
+    userName = "Casper Teirlinck";
+    userEmail = "casperteirlinck@gmail.com";
+  };
+
   programs.home-manager.enable = true;
 }

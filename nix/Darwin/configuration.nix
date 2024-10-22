@@ -22,6 +22,9 @@
     
     homebrew.casks = [
         "visual-studio-code"
+        "brave-browser"
+        "keepassxc"
+        "obsidian"
     ];
 
     system.defaults = {
@@ -30,9 +33,15 @@
         finder.ShowPathbar = true;
         finder.FXPreferredViewStyle = "clmv";
 
+        dock.autohide = true;
         dock.show-recents = false;
         dock.mru-spaces = false;
-        dock.tilesize = 64;
-        # dock.persistent-apps
+        dock.tilesize = 42;
+        dock.persistent-apps = [
+            "/Applications/KeePassXC.app"
+            "/Applications/Brave Browser.app"
+            "/Applications/Obsidian.app"
+        ];
+        dock.persistent-others = [];
     };
 }
