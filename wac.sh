@@ -62,15 +62,15 @@ function apply_nix() {
 
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         if [ "$dry" = true ]; then
-            home-manager switch --impure --flake ~/.dotfiles/home-manager/Linux --dry-run
+            home-manager switch --impure --flake ~/.dotfiles/nix/Linux --dry-run
         else
-            home-manager switch --impure --flake ~/.dotfiles/home-manager/Linux
+            home-manager switch --impure --flake ~/.dotfiles/nix/Linux
         fi
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         if [ "$dry" = true ]; then
-            home-manager switch --impure --flake ~/.dotfiles/home-manager/Darwin --dry-run
+            darwin-rebuild switch --impure --flake ~/.dotfiles/nix/Darwin --dry-run
         else
-            home-manager switch --impure --flake ~/.dotfiles/home-manager/Darwin
+            darwin-rebuild switch --impure --flake ~/.dotfiles/nix/Darwin
         fi
     fi
 }

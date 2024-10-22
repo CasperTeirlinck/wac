@@ -1,3 +1,7 @@
 - name: "Package manager tasks"
   ansible.builtin.include_tasks:
     file: "package-managers.yml"
+
+- name: "Nix-Darwin tasks"
+  ansible.builtin.include_tasks:
+    file: "nix-darwin.yml"

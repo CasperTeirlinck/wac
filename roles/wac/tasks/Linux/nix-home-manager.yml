@@ -8,7 +8,7 @@
         executable: /bin/bash
 
     - name: Install Nix Home Manager [2/2]
-      shell: nix run home-manager/master -- init --switch ~/.dotfiles/home-manager
+      shell: nix run home-manager/master -- init --switch ~/.dotfiles/nix/Linux
       args:
         executable: /bin/bash
       when: nix_env_home_manager.stdout == ""
