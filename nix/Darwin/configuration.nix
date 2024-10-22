@@ -19,6 +19,10 @@
     nix.configureBuildUsers = true;
     # This does not install Homebrew itself
     homebrew.enable = true;
+    
+    homebrew.casks = [
+        "visual-studio-code"
+    ];
 
     system.defaults = {
         finder.AppleShowAllExtensions = true;
