@@ -11,8 +11,11 @@
         };
     };
 
-    outputs = inputs@{ nixpkgs, home-manager, darwin, ... }: {
-        darwinConfigurations."casper" = darwin.lib.darwinSystem {
+    outputs = inputs@{ nixpkgs, home-manager, darwin, ... }: 
+        let 
+            hostname = builtins.exec "hostname";
+        in {
+        darwinConfigurations.${hostname} = darwin.lib.darwinSystem {
             system = "aarch64-darwin";
             modules = [
                 ./configuration.nix

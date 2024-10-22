@@ -7,6 +7,10 @@
       args:
         executable: /bin/bash
 
+    - name: "Msg"
+      debug:
+        msg: "The following task can take a long time, don't close the session."
+
     - name: Install Nix Home Manager [2/2]
       shell: nix run nix-darwin -- switch --flake ~/.dotfiles/nix/Darwin
       args:

@@ -1,5 +1,9 @@
 - name: Install Nix Package Manager
   block:
+    - name: "Msg"
+      debug:
+        msg: "The following task can take a long time, don't close the session."
+
     - name: Install Nix Package Manager [1/3]
       shell: |
         set -o pipefail &&
@@ -7,6 +11,8 @@
       args:
         executable: /bin/bash
         creates: "/nix/var/nix/profiles/default/bin/nix"
+      
+    # TODO: need to restart shell session?
 
     - name: Install Nix Package Manager [2/3]
       ansible.builtin.lineinfile:
