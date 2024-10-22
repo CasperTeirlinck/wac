@@ -3,6 +3,8 @@
 
 { pkgs, ... }:
 {
+    system.stateVersion = 5;
+
     users.users.casper.home = "/Users/casper";
     # Auto upgrade nix package and the daemon service.
     services.nix-daemon.enable = true;
