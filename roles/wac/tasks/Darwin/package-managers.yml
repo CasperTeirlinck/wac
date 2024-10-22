@@ -1,0 +1,9 @@
+- name: Install Nix Package Manager
+  block:
+    - name: Install Nix Package Manager [1/3]
+      shell: |
+        set -o pipefail &&
+        curl -L https://nixos.org/nix/install | sh
+      args:
+        executable: /bin/bash
+        # creates: "/nix/var/nix/profiles/default/bin/nix"

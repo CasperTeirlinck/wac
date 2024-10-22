@@ -59,7 +59,20 @@ function apply_ansible() {
 
 function apply_nix() {
     echo "→ 📦 Applying Nix..."
-    # home-manager switch --impure --flake ~/.dotfiles/home-manager
+
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if [ "$dry" = true ]; then
+            home-manager switch --impure --flake ~/.dotfiles/home-manager/Linux --dry-run
+        else
+            home-manager switch --impure --flake ~/.dotfiles/home-manager/Linux
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        if [ "$dry" = true ]; then
+            home-manager switch --impure --flake ~/.dotfiles/home-manager/Darwin --dry-run
+        else
+            home-manager switch --impure --flake ~/.dotfiles/home-manager/Darwin
+        fi
+    fi
 }
 
 function apply_chezmoi() {

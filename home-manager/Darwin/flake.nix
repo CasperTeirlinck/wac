@@ -1,0 +1,30 @@
+{
+    description = "Home Manager configuration";
+
+    inputs = {
+        nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+        darwin.url = "github:lnl7/nix-darwin";
+        darwin.inputs.nixpkgs.follows = "nixpkgs";
+        home-manager = {
+            url = "github:nix-community/home-manager";
+            inputs.nixpkgs.follows = "nixpkgs";
+        };
+    };
+
+    outputs = inputs@{ nixpkgs, home-manager, darwin, ... }: {
+        darwinConfigurations."casper" = darwin.lib.darwinSystem {
+            system = "aarch64-darwin";
+            modules = [
+                ./configuration.nix
+                home-manager.darwinModules.home-manager {
+                    home-manager.useGlobalPkgs = true;
+                    home-manager.useUserPackages = true;
+                    home-manager.users.casper = import ./home.nix;
+
+                    # Optionally use home-manager.extraSpecialArgs
+                    # to pass through arguments to home.nix
+                }
+            ];
+        };
+    };
+}

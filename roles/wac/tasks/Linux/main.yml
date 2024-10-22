@@ -1,0 +1,11 @@
+- name: "Package manager tasks"
+  ansible.builtin.import_tasks:
+    file: "package-managers.yml"
+
+- name: "Nix home-manager tasks"
+  ansible.builtin.import_tasks:
+    file: "nix-home-manager.yml"
+
+- name: "chezmoi tasks"
+  ansible.builtin.import_tasks:
+    file: "chezmoi.yml"

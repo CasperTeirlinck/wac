@@ -1,3 +1,3 @@
-- name: "Package manager tasks"
-  ansible.builtin.import_tasks:
-    file: "package-managers.yml"
+- name: "System-specific tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['system'] }}/main.yml"
