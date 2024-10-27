@@ -1,0 +1,131 @@
+zmodload zsh/zprof # uncomment to profile startup time
+
+# General zsh options
+setopt appendhistory autocd extendedglob notify
+
+# Disable beep sound
+unsetopt beep
+
+# History file
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=50000
+SAVEHIST=10000
+
+# Enable Powerlevel10k instant prompt
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# Update PATH
+command -v dircolors >/dev/null 2>&1 && eval "$(dircolors)"
+command -v /opt/homebrew/bin/brew >/dev/null 2>&1 && eval "$(/opt/homebrew/bin/brew shellenv | grep -v '^export PATH')"
+export PATH="$PATH:$HOME/.local/bin"
+export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
+export PATH="$PATH:/opt/homebrew/bin:/opt/homebrew/sbin" # do not replace common system packages by linuxbrew versions
+export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin"
+export PATH="$PATH:/opt/mssql-tools18/bin"
+export PATH="$PATH:$HOME/.rd/bin"
+
+# . "/home/casper/.asdf/installs/rust/1.76.0/env"
+
+# Set theme
+source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
+ZSH_THEME="powerlevel10k/powerlevel10k"
+
+# Disable delay on pasting text
+DISABLE_MAGIC_FUNCTIONS="true"
+
+# Completion: zsh-autosuggestions
+export ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+
+# Completion: Load additional completion functions
+fpath+=~/.zfunc
+fpath+=~/.zsh/plugins/zsh-completions/src
+fpath+=/opt/homebrew/share/zsh/site-functions
+fpath+=~/.asdf/completions
+[ -d ~/.zfunc ] || mkdir ~/.zfunc
+
+# Completion: Load compinit + bashcompinit
+# autoload -Uz compinit
+autoload -Uz compinit bashcompinit
+compinit
+bashcompinit
+
+# Load plugins
+source ~/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh 2> /dev/null
+source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2> /dev/null
+# source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2> /dev/null
+source ~/.zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh 2> /dev/null
+# source ~/.zsh/plugins/zsh-better-npm-completion/zsh-better-npm-completion.plugin.zsh 2> /dev/null
+
+# Case insensitive completions
+zstyle ":completion:*" matcher-list "m:{a-z}={A-Za-z}"
+
+# Autojump
+command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+
+# Completions
+command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
+command -v poetry >/dev/null 2>&1 && eval "$(poetry completions zsh > ~/.zfunc/_poetry)"
+command -v conveyor >/dev/null 2>&1 && eval "$(conveyor completion zsh > ~/.zfunc/_conveyor)"
+
+# Tool version manager: asdf
+. ~/.asdf/asdf.sh 2> /dev/null
+
+# Tool version manager: mise
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+
+# Package manger: Nix
+if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+  . "$HOME/.nix-profile/etc/profile.d/nix.sh";
+fi
+
+# Completion: Enable hidden files in cd completion, but without ./ and ../
+_comp_options+=(globdots)
+zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+
+# Set up fzf key bindings and fuzzy completion
+source <(fzf --zsh)
+
+export FZF_DEFAULT_OPTS='
+  --color=pointer:2,prompt:4,info:242,gutter:-1 --pointer "→ " --prompt "→ "
+'
+zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions --color=always $realpath'
+zstyle ':fzf-tab:*' fzf-bindings 'tab:accept'
+bindkey '^[[A' fzf-history-widget # gets overwritten by atuin at the moment
+
+# Atuin
+# eval "$(atuin init zsh)"
+
+# Aliases
+source $HOME/.bash_aliases
+
+# Keybinds
+source ~/.zsh_binds
+
+# Load p10k config
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+# Enable java
+if [ -f "$HOME/.asdf/plugins/java/set-java-home.zsh" ]; then
+  . ~/.asdf/plugins/java/set-java-home.zsh
+fi
+
+[[ -f ~/.config/shell/p10k.mise.zsh ]] && source ~/.config/shell/p10k.mise.zsh
+
+# Add ssh identities
+if [ -z "$SSH_AUTH_SOCK" ] ; then
+  eval `ssh-agent -s` > /dev/null
+fi
+if [ -f "$HOME/.ssh/id_imec_gh" ]; then
+  ssh-add $HOME/.ssh/id_imec_gh > /dev/null 2>&1
+fi
+if [ -f "$HOME/.ssh/id_imec_do" ]; then
+  ssh-add $HOME/.ssh/id_imec_do > /dev/null 2>&1
+fi
+if [ -f "$HOME/.ssh/id_plotlytrial" ]; then
+  ssh-add $HOME/.ssh/id_plotlytrial > /dev/null 2>&1
+fi
+
+zprof # uncomment to profile startup time
