@@ -6,3 +6,6 @@ role_system_drivers: false
 role_shell: true
 role_packages: true
 role_de: false
+
+git_user: "Casper Teirlinck"
+git_email: "casperteirlinck@gmail.com"

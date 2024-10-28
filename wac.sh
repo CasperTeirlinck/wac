@@ -23,6 +23,7 @@ function main_apply() {
 function main_bootstrap() {
     echo "🚀 Bootstrapping..."
 
+    echo "→ 📥 Installing dependencies..."
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
         sudo apt update
         sudo apt install software-properties-common
@@ -77,7 +78,7 @@ function apply_nix() {
 
 function apply_chezmoi() {
     echo "→ 🗃️  Applying Chezmoi..."
-    # chezmoi apply
+    chezmoi apply
 }
 
 # Command

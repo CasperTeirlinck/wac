@@ -20,6 +20,7 @@ export ANDROID_HOME="$HOME/.android"
 # Update PATH
 eval "$(dircolors)"
 command -v /home/linuxbrew/.linuxbrew/bin/brew >/dev/null 2>&1 && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv | grep -v '^export PATH')"
+export PATH="$PATH:$HOME/scripts"
 export PATH="$PATH:$HOME/.local/bin"
 export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
 export PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" # do not replace common system packages by linuxbrew versions

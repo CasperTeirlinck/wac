@@ -45,6 +45,16 @@ for key     kcap   seq        mode   widget (
     home    khome  $'\EOH'    deselect beginning-of-line
     home2   x      $'\E1~'    deselect beginning-of-line
 
+    {{ if eq .chezmoi.os "darwin" }}
+    # csleft  x      $'\E[1;5D' select   backward-word
+    # csright x      $'\E[1;5C' select   forward-word
+    # csend   x      $'\E[1;5F' select   end-of-line
+    # cshome  x      $'\E[1;5H' select   beginning-of-line
+    csleft  x      $'\E[1;6D' select   backward-word
+    csright x      $'\E[1;6C' select   forward-word
+    csend   x      $'\E[1;6F' select   end-of-line
+    cshome  x      $'\E[1;6H' select   beginning-of-line
+    {{ else if eq .chezmoi.os "linux" }}
     csleft  x      $'\E[1;6D' select   backward-word
     csright x      $'\E[1;6C' select   forward-word
     csend   x      $'\E[1;6F' select   end-of-line
@@ -52,6 +62,7 @@ for key     kcap   seq        mode   widget (
 
     cleft   x      $'\E[1;5D' deselect backward-word
     cright  x      $'\E[1;5C' deselect forward-word
+    {{ end }}
 
     del     kdch1   $'\E[3~'  delregion delete-char
     bs      x       $'^?'     delregion backward-delete-char

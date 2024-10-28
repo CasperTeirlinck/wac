@@ -6,9 +6,9 @@ alias grep='grep --color=always'
 alias uninstall='sudo apt purge --autoremove'
 alias shutdown='sudo shutdown -h now'
 
-command -v exa >/dev/null 2>&1 && alias lll='exa -1la --icons --group-directories-first --group --header -L=1 -T'
-command -v exa >/dev/null 2>&1 && alias ll='exa -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
-command -v exa >/dev/null 2>&1 && alias l='exa -1l --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
+command -v eza >/dev/null 2>&1 && alias lll='eza -1la --icons --group-directories-first --group --header -L=1 -T'
+command -v eza >/dev/null 2>&1 && alias ll='eza -1la --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
+command -v eza >/dev/null 2>&1 && alias l='eza -1l --icons --group-directories-first --no-user --no-time --no-filesize --no-permissions -L=1 -T'
 
 alias g="git"
 alias ga="git add"

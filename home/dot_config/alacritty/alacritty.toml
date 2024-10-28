@@ -3,9 +3,9 @@ import = [
 ]
 
 [font]
-size = 8
-normal = { family = "Fira Code Nerd Font", style = "Regular" }
-bold = { family = "Fira Code Nerd Font", style = "Bold" }
+size = 14
+normal = { family = "FiraCode Nerd Font", style = "Regular" }
+bold = { family = "FiraCode Nerd Font", style = "Bold" }
 
 [window]
 padding = { x =5, y = 5 }

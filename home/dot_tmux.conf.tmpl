@@ -19,9 +19,18 @@ set-option -g history-limit 10000
 set -g mouse on
 
 # Prefix
-set -g prefix C-a
+{{$prefix := ""}}
+{{ if eq .chezmoi.os "darwin" }}
+# tmux only supports binding to Meta or Ctrl where Meta = Alt on Mac.
+# so instead, keep the modifier to Ctrl, and remap Cmd-a to Ctrl-a in iterm.
+# in iterm, go to profile -> Keys -> Key Mappings -> map Cmd-a to send hex code 0x01.
+{{$prefix = "C-a"}}
+{{ else if eq .chezmoi.os "linux" }}
+{{$prefix = "C-a"}}
+{{ end }}
+set -g prefix {{$prefix}}
 unbind C-b
-bind-key C-a send-prefix
+bind-key {{$prefix}} send-prefix
 
 # Splitting
 unbind \\
@@ -47,10 +56,10 @@ unbind Up
 unbind Down
 unbind Left
 unbind Right
-bind-key Up if-shell "$is_vim" "send-keys C-a Up" "select-pane -U"
-bind-key Down if-shell "$is_vim" "send-keys C-a Down" "select-pane -D"
-bind-key Left if-shell "$is_vim" "send-keys C-a Left" "select-pane -L"
-bind-key Right if-shell "$is_vim" "send-keys C-a Right" "select-pane -R"
+bind-key Up if-shell "$is_vim" "send-keys {{$prefix}} Up" "select-pane -U"
+bind-key Down if-shell "$is_vim" "send-keys {{$prefix}} Down" "select-pane -D"
+bind-key Left if-shell "$is_vim" "send-keys {{$prefix}} Left" "select-pane -L"
+bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "select-pane -R"
 
 # Moving panes
 unbind C-Left
@@ -64,7 +73,7 @@ bind-key / command-prompt -p "send pane to window:" "join-pane -v -t '%%'"
 # Deleting panes
 unbind x
 # bind-key x kill-pane # no confirm-before because cannot customize (yet) the confirm key
-bind-key x if-shell "$is_vim" "send-keys C-a x" "kill-pane"
+bind-key x if-shell "$is_vim" "send-keys {{$prefix}} x" "kill-pane"
 
 # Moving between windows
 unbind ,
@@ -79,10 +88,10 @@ bind-key -r , previous-window
 bind-key -r . next-window
 bind-key -r < swap-window -d -t -1
 bind-key -r > swap-window -d -t +1
-bind-key -r '[' if-shell "$is_vim" "send-keys C-a '['" "previous-window"
-bind-key -r ']' if-shell "$is_vim" "send-keys C-a ']'" "next-window"
-bind-key -r '{' if-shell "$is_vim" "send-keys C-a '{'" "swap-window -d -t -1"
-bind-key -r '}' if-shell "$is_vim" "send-keys C-a '}'" "swap-window -d -t +1"
+bind-key -r '[' if-shell "$is_vim" "send-keys {{$prefix}} '['" "previous-window"
+bind-key -r ']' if-shell "$is_vim" "send-keys {{$prefix}} ']'" "next-window"
+bind-key -r '{' if-shell "$is_vim" "send-keys {{$prefix}} '{'" "swap-window -d -t -1"
+bind-key -r '}' if-shell "$is_vim" "send-keys {{$prefix}} '}'" "swap-window -d -t +1"
 
 # Resizing panes
 unbind S-Up

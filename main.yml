@@ -3,7 +3,7 @@
   pre_tasks:
     - name: "Load variables"
       ansible.builtin.include_vars:
-        file: "vars.yml"
+        file: "config.config.yml"
 
   tasks:
     - name: "Apply system role"
@@ -20,10 +20,10 @@
       ansible.builtin.import_role:
         name: "wac"
 
-    # - name: "Apply shell role"
-    #   ansible.builtin.import_role:
-    #     name: "shell"
-    #   when: "{{ role_shell }}"
+    - name: "Apply shell role"
+      ansible.builtin.import_role:
+        name: "shell"
+      when: role_shell
 
     # - name: "Apply desktop environment role"
     #   ansible.builtin.import_role:

@@ -1,0 +1,9 @@
+{
+    dock-extra-apps = [
+        "/Applications/Google Chrome.app"
+        "/Applications/Slack.app"
+        "/Applications/Microsoft Teams.app"
+        "/Applications/Microsoft Outlook.app"
+        "/Applications/Notion.app"
+    ];
+}
