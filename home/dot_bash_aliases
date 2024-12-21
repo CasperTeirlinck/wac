@@ -39,3 +39,23 @@ alias cvd='conveyor project build && conveyor project deploy --wait'
 
 alias clone_subdir='~/scripts/git_sparse_checkout.sh'
 alias fix_zsh_hist='~/scripts/fix_corrupt_zsh_hist.sh'
+
+oc() {
+    if [[ $1 == "project" ]]; then
+        command oc config set-context --current --namespace "${@:2}"
+    elif [[ $1 == "switch" ]]; then
+        command oc config use-context "${@:2}"
+    else
+        command oc "$@"
+    fi
+}
+
+k() {
+    if [[ $1 == "project" ]]; then
+        kubectl config set-context --current --namespace "${@:2}"
+    elif [[ $1 == "switch" ]]; then
+        kubectl config use-context "${@:2}"
+    else
+        kubectl "$@"
+    fi
+}

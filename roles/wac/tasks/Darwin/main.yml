@@ -5,3 +5,7 @@
 - name: "Nix-Darwin tasks"
   ansible.builtin.include_tasks:
     file: "nix-darwin.yml"
+
+- name: "Chezmoi tasks"
+  ansible.builtin.include_tasks:
+    file: "chezmoi.yml"

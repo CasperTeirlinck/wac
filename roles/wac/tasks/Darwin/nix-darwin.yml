@@ -4,7 +4,7 @@
       debug:
         msg: "The following task can take a long time, don't close the session."
 
-    - name: Install Nix Home Manager
+    - name: Install & run Nix Darwin
       shell: nix run nix-darwin -- switch --flake ~/.dotfiles/nix/Darwin
       args:
         executable: /bin/bash

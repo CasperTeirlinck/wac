@@ -30,6 +30,8 @@ in {
         "obsidian"
         "iterm2"
         "rancher"
+        "tunnelblick"
+        "dbeaver-community"
         # "karabiner-elements" # not used to do actual key mappings
     ];
     homebrew.brews = [
@@ -43,9 +45,19 @@ in {
         "zoxide"
         "atuin"
         # tooling
+        "yq"
+        "ruff"
+        "neovim"
+        "poetry"
+        "uv"
+        "pre-commit"
+        "cruft"
+        "cookiecutter"
         "k9s"
         "awscli"
         "saml2aws"
+        "zsh-autosuggestions"
+        "localstack/tap/localstack-cli"
         # system utils
         # "scroll-reverser"
     ];
@@ -88,7 +100,7 @@ in {
         dock.autohide = false;
         dock.show-recents = false;
         dock.mru-spaces = false;
-        dock.tilesize = 42;
+        dock.tilesize = 40;
         dock.persistent-apps = [
             "/Applications/iTerm.app"
             "/Applications/KeePassXC.app"

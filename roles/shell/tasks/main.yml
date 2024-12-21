@@ -1,0 +1,7 @@
+- name: "ZSH tasks"
+  ansible.builtin.include_tasks:
+    file: "zsh.yml"
+
+- name: "Tmux tasks"
+  ansible.builtin.include_tasks:
+    file: "tmux.yml"

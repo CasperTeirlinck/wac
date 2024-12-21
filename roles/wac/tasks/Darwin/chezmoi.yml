@@ -1,0 +1,9 @@
+- name: Init chezmoi
+  command: "{{ brew_prefix }}/bin/chezmoi init -S ~/.dotfiles"
+  args:
+    creates: "{{ ansible_env.HOME }}/.config/chezmoi/chezmoi.yaml"
+
+- name: Apply dotfiles
+  command: "{{ brew_prefix }}/bin/chezmoi apply"
+  register: output
+  changed_when: output.rc != 0
