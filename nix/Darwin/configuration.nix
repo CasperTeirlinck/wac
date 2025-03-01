@@ -32,6 +32,8 @@ in {
         "rancher"
         "tunnelblick"
         "dbeaver-community"
+        "ghostty"
+        "chatbox"
         # "karabiner-elements" # not used to do actual key mappings
     ];
     homebrew.brews = [
@@ -56,10 +58,18 @@ in {
         "k9s"
         "awscli"
         "saml2aws"
+        "krew"
         "zsh-autosuggestions"
         "localstack/tap/localstack-cli"
+        "granted"
+        "starship"
+        "dive"
+        "rustscan"
         # system utils
         # "scroll-reverser"
+    ];
+    homebrew.taps = [
+        "common-fate/granted"
     ];
 
     fonts.packages = [

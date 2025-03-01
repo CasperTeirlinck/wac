@@ -10,9 +10,9 @@ HISTSIZE=50000
 SAVEHIST=10000
 
 # Enable Powerlevel10k instant prompt
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# fi
 
 # Update PATH
 command -v dircolors >/dev/null 2>&1 && eval "$(dircolors)"
@@ -24,15 +24,17 @@ export PATH="$PATH:/opt/homebrew/bin:/opt/homebrew/sbin" # do not replace common
 export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin"
 export PATH="$PATH:/opt/mssql-tools18/bin"
 export PATH="$PATH:$HOME/.rd/bin"
+export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
 
 # Set theme
-source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
-ZSH_THEME="powerlevel10k/powerlevel10k"
+# source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
+# ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Disable delay on pasting text
 DISABLE_MAGIC_FUNCTIONS="true"
 
 # Completion: zsh-autosuggestions
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 export ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 
 # # Completion: Load additional completion functions
@@ -44,14 +46,21 @@ fpath+=~/.asdf/completions
 
 # Completion: Load compinit + bashcompinit
 # only check cache once a day to prevent startup delay: https://gist.github.com/ctechols/ca1035271ad134841284
-autoload -U compinit bashcompinit
-if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
-  compinit
-  bashcompinit
-else
-  compinit -C
-  bashcompinit -C
-fi
+# autoload -U compinit bashcompinit
+# if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
+#   compinit
+#   bashcompinit
+# else
+#   compinit -C
+#   bashcompinit -C
+# fi
+autoload -Uz compinit bashcompinit
+for dump in ~/.zcompdump(N.mh+24); do
+    compinit
+    bashcompinit
+done
+compinit -C
+bashcompinit -C
 
 # Load plugins
 source ~/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh 2> /dev/null
@@ -101,8 +110,15 @@ source $HOME/.bash_aliases
 # Keybinds
 source ~/.zsh_binds
 
+# CA certificates
+CERT_PATH=/etc/ssl/certs/cacert.pem
+export SSL_CERT_FILE=${CERT_PATH}
+export REQUESTS_CA_BUNDLE=${CERT_PATH}
+
 # Load p10k config
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-[[ -f ~/.config/shell/p10k.mise.zsh ]] && source ~/.config/shell/p10k.mise.zsh
+# [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# [[ -f ~/.config/shell/p10k.mise.zsh ]] && source ~/.config/shell/p10k.mise.zsh
+
+eval "$(starship init zsh)"
 
 # zprof # uncomment to profile startup time

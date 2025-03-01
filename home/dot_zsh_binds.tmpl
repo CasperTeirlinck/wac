@@ -2,7 +2,7 @@
 
 r-delregion() {
   if ((REGION_ACTIVE)) then
-     zle kill-region
+    zle kill-region
   else 
     local widget_name=$1
     shift
@@ -46,14 +46,17 @@ for key     kcap   seq        mode   widget (
     home2   x      $'\E1~'    deselect beginning-of-line
 
     {{ if eq .chezmoi.os "darwin" }}
-    # csleft  x      $'\E[1;5D' select   backward-word
-    # csright x      $'\E[1;5C' select   forward-word
-    # csend   x      $'\E[1;5F' select   end-of-line
-    # cshome  x      $'\E[1;5H' select   beginning-of-line
-    csleft  x      $'\E[1;6D' select   backward-word
-    csright x      $'\E[1;6C' select   forward-word
-    csend   x      $'\E[1;6F' select   end-of-line
-    cshome  x      $'\E[1;6H' select   beginning-of-line
+    # csleft  x      $'\E[1;0D' select   backward-word
+    # csright x      $'\E[1;0C' select   forward-word
+    # csend   x      $'\E[1;0F' select   end-of-line
+    # cshome  x      $'\E[1;0H' select   beginning-of-line
+
+    # csleft  x      $'\E[1;6D' select   backward-word
+    # csright x      $'\E[1;6C' select   forward-word
+    # csend   x      $'\E[1;6F' select   end-of-line
+    # cshome  x      $'\E[1;6H' select   beginning-of-line
+    # cleft   x      $'\E[1;5D' deselect backward-word
+    # cright  x      $'\E[1;5C' deselect forward-word
     {{ else if eq .chezmoi.os "linux" }}
     csleft  x      $'\E[1;6D' select   backward-word
     csright x      $'\E[1;6C' select   forward-word
@@ -74,6 +77,11 @@ for key     kcap   seq        mode   widget (
   zle -N key-$key
   bindkey ${terminfo[$kcap]-$seq} key-$key
 }
+
+{{ if eq .chezmoi.os "darwin" }}
+bindkey '[C' forward-word
+bindkey '[D' backward-word
+{{ end }}
 
 # Patch zsh-autosuggestions to still acept on r-arrow and end
 ZSH_AUTOSUGGEST_ACCEPT_WIDGETS+=key-right

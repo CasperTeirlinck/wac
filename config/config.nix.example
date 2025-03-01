@@ -1,5 +1,10 @@
 {
+    home.username = "casper";
+    home.homeDirectory = "/Users/casper";
+    git.userName = "Casper Teirlinck";
+    git.userEmail = "casperteirlinck@gmail.com";
     dock-extra-apps = [
+        "/Users/casper/Applications/Chrome Apps.localized/Google Calendar.app"
         "/Applications/Google Chrome.app"
         "/Applications/Slack.app"
         "/Applications/Microsoft Teams.app"
