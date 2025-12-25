@@ -3,7 +3,7 @@
   pre_tasks:
     - name: "Load variables"
       ansible.builtin.include_vars:
-        file: "config.config.yml"
+        file: "config/config.yml"
 
   tasks:
     - name: "Apply system role"
