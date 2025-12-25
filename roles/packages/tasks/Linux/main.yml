@@ -1,0 +1,3 @@
+- name: "Apt tasks"
+  ansible.builtin.include_tasks:
+    file: "apt.yml"

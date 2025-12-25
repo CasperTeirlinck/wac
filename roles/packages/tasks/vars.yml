@@ -1,0 +1,3 @@
+- name: "Load system-specific variables"
+  ansible.builtin.include_vars:
+    file: "{{ ansible_facts['system'] }}.yml"

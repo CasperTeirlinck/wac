@@ -1,0 +1,41 @@
+- name: Install apt packages
+  become: true
+  apt:
+    name:
+      # ↓ Common
+      - software-properties-common
+      - libfuse2 # needed for running appimages
+      - pkg-config
+      - jq
+      - cmake
+      - python3
+      # ↓ Needed for Homebrew: https://docs.brew.sh/Homebrew-on-Linux#requirements
+      - build-essential
+      - procps
+      - curl
+      - file
+    state: latest
+    update_cache: yes
+
+- name: Install brew packages
+  block:
+    - name: Install taps
+      command: "{{ brew_prefix }}/bin/brew tap {{ item.name }}"
+      args:
+        creates: "{{ brew_prefix }}/Homebrew/Library/Taps/{{ item.dirname }}"
+      loop:
+        - { name: wez/wezterm-linuxbrew, dirname: wez/homebrew-wezterm-linuxbrew }
+        - { name: jvanbuel/flowrs, dirname: jvanbuel/homebrew-flowrs }
+
+    - name: Install packages
+      command: "{{ brew_prefix }}/bin/brew install {{ item }}"
+      args:
+        creates: "{{ brew_prefix }}/opt/{{ item }}"
+      loop:
+        # - wezterm
+        - flowrs
+        - bat # better cat
+        - trash-cli # better rm
+        - exa # better ls
+        - zoxide # better cd
+        - fzf

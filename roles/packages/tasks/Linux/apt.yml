@@ -1,0 +1,41 @@
+- name: Add apt keys
+  become: true
+  block:
+    - name: Add mirosoft apt key
+      shell: |
+        set -o pipefail &&
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/packages.microsoft.gpg 
+      args:
+        executable: /bin/bash
+        creates: /etc/apt/trusted.gpg.d/packages.microsoft.gpg
+    - name: Add brave key
+      shell: |
+        set -o pipefail &&
+        curl -sSL https://brave-browser-apt-release.s3.brave.com/brave-browser-archive-keyring.gpg | gpg --dearmor > /usr/share/keyrings/brave-browser-archive-keyring.gpg 
+      args:
+        executable: /bin/bash
+        creates: /usr/share/keyrings/brave-browser-archive-keyring.gpg 
+    - name: Set permissions
+      file:
+        path: "{{ item }}"
+        state: file
+        owner: root
+        group: root
+        mode: "644" 
+      loop:
+        - /etc/apt/trusted.gpg.d/packages.microsoft.gpg
+
+- name: Add apt repositories
+  become: true
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  loop:
+    # alacritty
+    - ppa:aslatter/ppa 
+    # vscode
+    - deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
+    # brave
+    - deb [signed-by=/usr/share/keyrings/brave-browser-archive-keyring.gpg] https://brave-browser-apt-release.s3.brave.com/ stable main
+    # build dependencies
+    - deb-src http://archive.ubuntu.com/ubuntu/ {{ ansible_distribution_release }} main

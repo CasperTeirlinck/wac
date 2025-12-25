@@ -15,19 +15,22 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # Android tools
-export ANDROID_HOME="$HOME/.android"
+export ANDROID_HOME="$HOME/Android/Sdk"
 
 # Update PATH
 eval "$(dircolors)"
 command -v /home/linuxbrew/.linuxbrew/bin/brew >/dev/null 2>&1 && eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv | grep -v '^export PATH')"
 export PATH="$PATH:$HOME/scripts"
 export PATH="$PATH:$HOME/.local/bin"
+export PATH="$PATH:/snap/bin"
 export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
 export PATH="$PATH:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" # do not replace common system packages by linuxbrew versions
 export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin"
+export PATH="$PATH:$ANDROID_HOME/platform-tools"
 export PATH="$PATH:/opt/mssql-tools18/bin"
-
-. "/home/casper/.asdf/installs/rust/1.76.0/env"
+export PATH="$PATH:$HOME/flutter/flutter/bin"
+# manually add vscode path needed because auto append windows paths is disabled in wsl to improve performance
+export PATH="$PATH:/mnt/c/Users/casper/AppData/Local/Programs/Microsoft VS Code/bin"
 
 # Set theme
 source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
@@ -69,9 +72,6 @@ command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
 command -v poetry >/dev/null 2>&1 && eval "$(poetry completions zsh > ~/.zfunc/_poetry)"
 command -v conveyor >/dev/null 2>&1 && eval "$(conveyor completion zsh > ~/.zfunc/_conveyor)"
 
-# Tool version manager: asdf
-. ~/.asdf/asdf.sh 2> /dev/null
-
 # Package manger: Nix
 if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
   . "$HOME/.nix-profile/etc/profile.d/nix.sh";
@@ -80,7 +80,7 @@ fi
 # Completion: Enable hidden files in cd completion, but without ./ and ../
 _comp_options+=(globdots)
 zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'
-zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 
 # Completion: Set fzf styles
 if [ -n "${commands[fzf-share]}" ]; then
@@ -99,7 +99,7 @@ bindkey '^[[A' fzf-history-widget # gets overwritten by atuin at the moment
 eval "$(atuin init zsh)"
 
 # Aliases
-source $HOME/.bash_aliases
+source "$HOME"/.bash_aliases
 
 # Keybinds
 source ~/.zsh_binds
@@ -107,21 +107,19 @@ source ~/.zsh_binds
 # Load p10k config
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# Enable java
-if [ -f "$HOME/.asdf/plugins/java/set-java-home.zsh" ]; then
-  . ~/.asdf/plugins/java/set-java-home.zsh
-fi
-
 # Add ssh identities
 if [ -z "$SSH_AUTH_SOCK" ] ; then
-  eval `ssh-agent -s` > /dev/null
+  eval $(ssh-agent -s) > /dev/null
 fi
 if [ -f "$HOME/.ssh/id_imec_gh" ]; then
-  ssh-add $HOME/.ssh/id_imec_gh > /dev/null 2>&1
+  ssh-add "$HOME"/.ssh/id_imec_gh > /dev/null 2>&1
 fi
 if [ -f "$HOME/.ssh/id_imec_do" ]; then
-  ssh-add $HOME/.ssh/id_imec_do > /dev/null 2>&1
+  ssh-add "$HOME"/.ssh/id_imec_do > /dev/null 2>&1
 fi
 if [ -f "$HOME/.ssh/id_plotlytrial" ]; then
-  ssh-add $HOME/.ssh/id_plotlytrial > /dev/null 2>&1
+  ssh-add "$HOME"/.ssh/id_plotlytrial > /dev/null 2>&1
 fi
+
+if [ -f '/home/casper/yandex-cloud/path.bash.inc' ]; then source '/home/casper/yandex-cloud/path.bash.inc'; fi
+if [ -f '/home/casper/yandex-cloud/completion.zsh.inc' ]; then source '/home/casper/yandex-cloud/completion.zsh.inc'; fi

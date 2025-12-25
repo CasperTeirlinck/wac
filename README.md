@@ -10,8 +10,6 @@
    Provisioning of user-specific components.
 - 🗃️ [Chezmoi](https://www.chezmoi.io/):  
    Managing dotfiles.
-- 🔧 [Asdf](https://asdf-vm.com/):  
-   Managing tool runtime versions.
 
 ## Installation
 0. Install Ubuntu Server 22.04 LTS & update `sudo apt update && sudo apt upgrade`

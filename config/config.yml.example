@@ -3,9 +3,7 @@ role_system_bt: false
 role_system_sound: false
 role_system_network: false
 role_system_drivers: false
+role_system_wsl: false
 role_shell: true
 role_packages: true
 role_de: false
-
-git_user: "Casper Teirlinck"
-git_email: "casperteirlinck@gmail.com"

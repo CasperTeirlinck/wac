@@ -1,0 +1,46 @@
+- name: Get docker url
+  set_fact:
+    docker_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
+
+- name: Add docker key
+  become: true
+  get_url:
+    url: "{{ docker_url }}/gpg"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: 0644
+
+- name: Add docker repository
+  become: true
+  apt_repository:
+    repo: deb [arch={{ deb_architecture.stdout }} signed-by=/etc/apt/keyrings/docker.asc] {{ docker_url }} {{ ansible_distribution_release }} stable
+    state: present
+
+- name: Install docker
+  become: true
+  apt:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: latest
+    update_cache: yes
+
+- name: Setup legacy iptables
+  become: true
+  shell: |
+    update-alternatives --set iptables /usr/sbin/iptables-legacy
+    update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+- name: Create docker group
+  become: true
+  group:
+    name: docker
+
+- name: Add user to docker group
+  become: true
+  user:
+    name: "{{ ansible_user }}"
+    group: docker
+  notify: user_login_reset

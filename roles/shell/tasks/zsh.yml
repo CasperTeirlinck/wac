@@ -1,3 +1,10 @@
+- name: Make zsh default shell
+  become: true
+  command: sh -c "usermod --shell $(which zsh) {{ ansible_user }}"
+  register: output
+  changed_when: output.rc != 0
+  notify: user_login_reset
+
 - name: Install zsh theme
   git:
     repo: https://github.com/romkatv/powerlevel10k.git

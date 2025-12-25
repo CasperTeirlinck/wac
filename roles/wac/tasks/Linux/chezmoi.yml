@@ -1,3 +1,8 @@
+- name: Install chezmoi
+  command: "{{ brew_prefix }}/bin/brew install chezmoi"
+  args:
+    creates: "{{ brew_prefix }}/opt/chezmoi"
+
 - name: Init chezmoi
   command: chezmoi init -S ~/.dotfiles
   args:

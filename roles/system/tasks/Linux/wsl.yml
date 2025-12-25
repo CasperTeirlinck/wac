@@ -1,0 +1,57 @@
+# There is some config that needs to be in the %USERPROFILE%/.wslconfig file under windows:
+# [wsl2]
+# networkingMode=mirrored
+# # https://github.com/microsoft/WSL/issues/10494:
+# firewall=false
+# dnsTunneling=true
+
+- name: Disable slow windows PATH append
+  become: true
+  blockinfile:
+    path: /etc/wsl.conf
+    create: true
+    marker:  "# {mark} ANSIBLE MANAGED BLOCK 1"
+    block: |
+      [interop]
+      appendWindowsPath = false
+
+- name: Enable systemd
+  become: true
+  blockinfile:
+    path: /etc/wsl.conf
+    create: true
+    marker:  "# {mark} ANSIBLE MANAGED BLOCK 2"
+    block: |
+      [boot]
+      systemd=true
+
+- name: Enable systemd (exe fix) # https://github.com/microsoft/WSL/issues/8952#issuecomment-1568212651
+  become: true
+  lineinfile:
+    path: /usr/lib/binfmt.d/WSLInterop.conf
+    line: :WSLInterop:M::MZ::/init:PF
+    create: yes
+
+- name: Time skew fix # https://github.com/microsoft/WSL/issues/8204#issuecomment-1338334154
+  block:
+    - name: Install systemd-timesyncd
+      become: true
+      apt:
+        name: systemd-timesyncd
+        state: latest
+        update_cache: yes
+        
+    - name: Setup systemd-timesyncd
+      become: true
+      blockinfile:
+        path: /etc/systemd/system/systemd-timesyncd.service.d/override.conf
+        create: true
+        block: |
+          [Unit]
+          ConditionVirtualization=
+
+    - name: Start systemd-timesyncd
+      become: true
+      systemd:
+        name: systemd-timesyncd
+        state: started

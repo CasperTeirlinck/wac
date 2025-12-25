@@ -1,0 +1,7 @@
+- name: "Load vars"
+  ansible.builtin.include_tasks:
+    file: "vars.yml"
+
+- name: "System-specific tasks"
+  ansible.builtin.include_tasks:
+    file: "{{ ansible_facts['system'] }}/main.yml"

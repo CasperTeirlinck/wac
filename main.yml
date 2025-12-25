@@ -14,6 +14,8 @@
         apply_drivers: "{{ role_system_drivers }}"
         apply_sound: "{{ role_system_sound }}"
         apply_network: "{{ role_system_network }}"
+        apply_docker: "{{ role_system_docker }}"
+        apply_wsl: "{{ role_system_wsl }}"
       when: role_system
 
     - name: "Apply WAC role"
@@ -25,12 +27,15 @@
         name: "shell"
       when: role_shell
 
-    # - name: "Apply desktop environment role"
-    #   ansible.builtin.import_role:
-    #     name: "de"
-    #   when: "{{ role_de }}"
+    - name: "Apply desktop environment role"
+      ansible.builtin.import_role:
+        name: "de"
+      when: "{{ role_de }}"
 
-    # - name: "Apply packages role"
-    #   ansible.builtin.import_role:
-    #     name: "packages"
-    #   when: "{{ role_packages }}"
+    - name: "Apply packages role"
+      ansible.builtin.import_role:
+        name: "packages"
+      when: "{{ role_packages }}"
+
+  handlers:
+    - import_tasks: handlers/main.yml

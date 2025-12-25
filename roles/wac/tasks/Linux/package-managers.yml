@@ -3,10 +3,10 @@
     - name: Install Nix Package Manager [1/3]
       shell: |
         set -o pipefail &&
-        curl -L https://nixos.org/nix/install | sh -s -- --daemon
+        curl -L https://nixos.org/nix/install | sh
       args:
         executable: /bin/bash
-        creates: "/nix/var/nix/profiles/default/bin/nix"
+        creates: "{{ ansible_env.HOME }}/.nix-profile/bin/nix"
 
     - name: Install Nix Package Manager [2/3]
       ansible.builtin.lineinfile:
@@ -25,7 +25,7 @@
   shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   args:
     executable: /bin/bash
-    creates: /home/linuxbrew/.linuxbrew/bin/brew
+    creates: "{{ brew_prefix }}/bin/brew"
 
 - name: Install flatpak
   block:
@@ -44,16 +44,10 @@
       args:
         executable: /bin/bash
 
-# Asdf tool version manager
-# NOTE: some tools (php, ..) need openssl < 3.0 to compile:
-#   $ mv /usr/bin/openssl /usr/bin/openssl-backup
-#   $ ln -s $(brew --prefix openssl@1.1) /usr/bin/openssl
-#   # Install e.g. php
-#   $ trash /usr/bin/openssl
-#   $ mv /usr/bin/openssl-backup /usr/bin/openssl
-- name: Install asdf
-  git:
-    repo: https://github.com/asdf-vm/asdf.git
-    dest: "{{ ansible_env.HOME }}/.asdf"
-    version: v0.11.1
-    single_branch: yes
+- name: Install Mise
+  become: true
+  apt:
+    name:
+      - mise
+    state: latest
+    update_cache: yes

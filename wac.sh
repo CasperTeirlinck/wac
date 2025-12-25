@@ -45,9 +45,9 @@ function apply_ansible() {
     if [ -n "$tags" ]; then
         echo "only for tags: $tags"
         if [ "$dry" = true ]; then
-            ansible-playbook main.yml -K --tags ""$tags"" --check --diff
+            ansible-playbook main.yml -K --tags """$tags""" --check --diff
         else
-            ansible-playbook main.yml -K --tags ""$tags""
+            ansible-playbook main.yml -K --tags """$tags"""
         fi
     else
         if [ "$dry" = true ]; then

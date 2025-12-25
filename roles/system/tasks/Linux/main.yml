@@ -24,3 +24,13 @@
   ansible.builtin.include_tasks:
     file: "bluetooth.yml"
   when: apply_bluetooth
+
+- name: "Docker tasks"
+  ansible.builtin.include_tasks:
+    file: "docker.yml"
+  when: apply_docker
+
+- name: "WSL tasks"
+  ansible.builtin.include_tasks:
+    file: "wsl.yml"
+  when: apply_wsl
