@@ -57,6 +57,7 @@ kamikillerto.vscode-colorize
 # --- AI
 github.copilot
 github.copilot-chat
+sst-dev.opencode
 
 # --- Misc
 cs50.vscode-presentation-mode
