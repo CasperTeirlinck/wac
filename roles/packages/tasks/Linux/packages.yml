@@ -34,8 +34,3 @@
       loop:
         # - wezterm
         - flowrs
-        - bat # better cat
-        - trash-cli # better rm
-        - exa # better ls
-        - zoxide # better cd
-        - fzf

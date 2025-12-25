@@ -62,6 +62,6 @@ github.copilot-chat
 cs50.vscode-presentation-mode
 )
 
-for plugin in ${plugins[@]}; do
-  code --install-extension "$plugin" --force
+for plugin in "${plugins[@]}"; do
+  code --install-extension "$plugin" --force 2>/dev/null || echo "Failed to install VSCode extension: $plugin. You cannot run this from a VSCode integrated terminal."
 done

@@ -8,18 +8,26 @@
         executable: /bin/bash
         creates: "{{ ansible_env.HOME }}/.nix-profile/bin/nix"
 
-    - name: Install Nix Package Manager [2/3]
+    - name: Install Nix Package Manager [2/4]
       ansible.builtin.lineinfile:
         path: "{{ ansible_env.HOME }}/.config/nix/nix.conf"
         line: experimental-features = nix-command flakes
         create: true
 
-    - name: Install Nix Package Manager [3/3]
-      become: true
-      ansible.builtin.systemd_service:
-        name: nix-daemon
-        state: restarted
-      changed_when: false
+    - name: Install Nix Package Manager [3/4]
+      shell: "{{ ansible_env.HOME }}/.nix-profile/bin/nix upgrade-nix"
+      args:
+        executable: /bin/bash
+      register: nix_upgrade
+      changed_when: "'upgraded' in nix_upgrade.stdout"
+      failed_when: nix_upgrade.rc != 0 and 'already' not in nix_upgrade.stderr
+
+    # - name: Install Nix Package Manager [4/4]
+    #   become: true
+    #   ansible.builtin.systemd_service:
+    #     name: nix-daemon
+    #     state: restarted
+    #   changed_when: false
 
 - name: Install Homebrew
   shell: NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -43,11 +51,8 @@
         /usr/bin/flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       args:
         executable: /bin/bash
+      register: flatpak_remote
+      changed_when: false
 
-- name: Install Mise
-  become: true
-  apt:
-    name:
-      - mise
-    state: latest
-    update_cache: yes
+# Installed by nix
+# - name: Install Mise

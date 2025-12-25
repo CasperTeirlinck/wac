@@ -5,6 +5,11 @@
     upgrade: full
   changed_when: false
 
+- name: Get debian/ubuntu architecture
+  command: dpkg --print-architecture
+  register: deb_architecture
+  changed_when: false
+
 - name: "Driver tasks"
   ansible.builtin.include_tasks:
     file: "drivers.yml"

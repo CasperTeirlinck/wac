@@ -33,6 +33,7 @@ in {
     pkgs.gnome.nautilus
     pkgs.rofi
     pkgs.chezmoi
+    pkgs.mise
     pkgs.zsh
     pkgs.fzf
     pkgs.zoxide

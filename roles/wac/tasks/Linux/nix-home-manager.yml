@@ -4,6 +4,7 @@
       shell: nix-env -q | grep home-manager
       register: nix_env_home_manager
       changed_when: false
+      failed_when: nix_env_home_manager.rc not in [0, 1]
       args:
         executable: /bin/bash
 
