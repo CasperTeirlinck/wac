@@ -2,6 +2,7 @@ role_system: true
 role_system_bt: false
 role_system_sound: false
 role_system_network: false
+role_system_docker: false
 role_system_drivers: false
 role_system_wsl: false
 role_shell: true
