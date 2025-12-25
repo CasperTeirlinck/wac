@@ -65,6 +65,9 @@ in {
         "starship"
         "dive"
         "rustscan"
+        "bruno"
+        "fd"
+        "zellij"
         # system utils
         # "scroll-reverser"
     ];

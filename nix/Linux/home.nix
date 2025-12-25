@@ -44,6 +44,7 @@ in {
     pkgs.atuin
     pkgs.neofetch
     pkgs.eyedropper
+    pkgs.gh
     (pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; })
 
     # # You can also create simple shell scripts directly inside your
