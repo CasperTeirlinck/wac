@@ -57,9 +57,7 @@ bashcompinit
 # Load plugins
 source ~/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh 2> /dev/null
 source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2> /dev/null
-# source ~/.zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2> /dev/null
 source ~/.zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh 2> /dev/null
-# source ~/.zsh/plugins/zsh-better-npm-completion/zsh-better-npm-completion.plugin.zsh 2> /dev/null
 
 # Case insensitive completions
 zstyle ":completion:*" matcher-list "m:{a-z}={A-Za-z}"
@@ -69,13 +67,10 @@ command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
 # Completions
 command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
-command -v poetry >/dev/null 2>&1 && eval "$(poetry completions zsh > ~/.zfunc/_poetry)"
-command -v conveyor >/dev/null 2>&1 && eval "$(conveyor completion zsh > ~/.zfunc/_conveyor)"
+command -v poetry >/dev/null 2>&1 && poetry completions zsh > ~/.zfunc/_poetry
+command -v conveyor >/dev/null 2>&1 && conveyor completion zsh > ~/.zfunc/_conveyor
 
-# Package manger: Nix
-if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-  . "$HOME/.nix-profile/etc/profile.d/nix.sh";
-fi
+[ -f ~/.nix-profile/etc/profile.d/nix.sh ] && source ~/.nix-profile/etc/profile.d/nix.sh
 
 # Completion: Enable hidden files in cd completion, but without ./ and ../
 _comp_options+=(globdots)
@@ -95,31 +90,16 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'exa -1la --icons --group-directorie
 zstyle ':fzf-tab:*' fzf-bindings 'tab:accept'
 bindkey '^[[A' fzf-history-widget # gets overwritten by atuin at the moment
 
-# Atuin
-eval "$(atuin init zsh)"
+command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
 
-# Aliases
-source "$HOME"/.bash_aliases
-
-# Keybinds
-source ~/.zsh_binds
-
-# Load p10k config
+[[ ! -f ~/.bash_aliases ]] || source ~/.bash_aliases
+[[ ! -f ~/.zsh_binds ]] || source ~/.zsh_binds
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-# Add ssh identities
-if [ -z "$SSH_AUTH_SOCK" ] ; then
-  eval $(ssh-agent -s) > /dev/null
-fi
-if [ -f "$HOME/.ssh/id_imec_gh" ]; then
-  ssh-add "$HOME"/.ssh/id_imec_gh > /dev/null 2>&1
-fi
-if [ -f "$HOME/.ssh/id_imec_do" ]; then
-  ssh-add "$HOME"/.ssh/id_imec_do > /dev/null 2>&1
-fi
-if [ -f "$HOME/.ssh/id_plotlytrial" ]; then
-  ssh-add "$HOME"/.ssh/id_plotlytrial > /dev/null 2>&1
-fi
+[[ ! -z "$SSH_AUTH_SOCK" ]] || eval "$(ssh-agent -s)" > /dev/null
+[[ ! -f ~/.ssh/id_imec_gh ]] || ssh-add ~/.ssh/id_imec_gh > /dev/null 2>&1
+[[ ! -f ~/.ssh/id_imec_do ]] || ssh-add ~/.ssh/id_imec_do > /dev/null 2>&1
+[[ ! -f ~/.ssh/id_plotlytrial ]] || ssh-add ~/.ssh/id_plotlytrial > /dev/null 2>&1
 
-if [ -f '/home/casper/yandex-cloud/path.bash.inc' ]; then source '/home/casper/yandex-cloud/path.bash.inc'; fi
-if [ -f '/home/casper/yandex-cloud/completion.zsh.inc' ]; then source '/home/casper/yandex-cloud/completion.zsh.inc'; fi
+[[ ! -f ~/yandex-cloud/path.bash.inc ]] || source ~/yandex-cloud/path.bash.inc
+[[ ! -f ~/yandex-cloud/completion.zsh.inc ]] || source ~/yandex-cloud/completion.zsh.inc

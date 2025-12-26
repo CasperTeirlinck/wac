@@ -34,6 +34,7 @@ in {
     pkgs.rofi
     pkgs.chezmoi
     pkgs.mise
+    pkgs.uv
     pkgs.zsh
     pkgs.fzf
     pkgs.zoxide
