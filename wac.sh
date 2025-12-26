@@ -20,6 +20,15 @@ function main_apply() {
     fi
 }
 
+function main_update() {
+    echo "🦎 Updating dotfiles:"
+
+    if [ "$nix" = true ]; then
+        update_nix
+        apply_nix
+    fi
+}
+
 function main_bootstrap() {
     echo "🚀 Bootstrapping..."
 
@@ -76,6 +85,16 @@ function apply_nix() {
     fi
 }
 
+function update_nix() {
+    echo "→ 📦 Updating Nix flakes..."
+
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        nix flake update --flake ~/.dotfiles/nix/Linux
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        nix flake update --flake ~/.dotfiles/nix/Darwin
+    fi
+}
+
 function apply_chezmoi() {
     echo "→ 🗃️  Applying Chezmoi..."
     chezmoi apply
@@ -86,6 +105,10 @@ cmd=""
 case "$1" in
 apply)
     cmd="apply"
+    shift 1
+    ;;
+update)
+    cmd="update"
     shift 1
     ;;
 bootstrap)
@@ -145,6 +168,9 @@ fi
 case "$cmd" in
 apply)
     main_apply
+    ;;
+update)
+    main_update
     ;;
 bootstrap)
     main_bootstrap

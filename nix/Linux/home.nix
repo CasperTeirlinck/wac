@@ -30,7 +30,7 @@ in {
     pkgs.arandr
     pkgs.pasystray
     pkgs.cbatticon
-    pkgs.gnome.nautilus
+    pkgs.nautilus
     pkgs.rofi
     pkgs.chezmoi
     pkgs.mise
@@ -47,7 +47,7 @@ in {
     pkgs.neofetch
     pkgs.eyedropper
     pkgs.gh
-    (pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; })
+    (pkgs.nerd-fonts.fira-code)
 
     # # You can also create simple shell scripts directly inside your
     # # configuration. For example, this adds a command 'my-hello' to your
@@ -81,8 +81,10 @@ in {
 
   programs.git = {
     enable = true;
-    userName = "Casper Teirlinck";
-    userEmail = "casperteirlinck@gmail.com";
+    settings.user = {
+      name = "Casper Teirlinck";
+      email = "casperteirlinck@gmail.com";  
+    };
   };
 
   # dconf = {
