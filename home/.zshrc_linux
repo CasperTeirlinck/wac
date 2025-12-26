@@ -1,13 +1,7 @@
-# General zsh options
+# shellcheck disable=SC2148
+
 setopt appendhistory autocd extendedglob notify
-
-# Disable beep sound
 unsetopt beep
-
-# History file
-HISTFILE="$HOME/.zsh_history"
-HISTSIZE=50000
-SAVEHIST=10000
 
 # Enable Powerlevel10k instant prompt
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
