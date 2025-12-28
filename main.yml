@@ -47,15 +47,18 @@
     - name: "Load variables"
       ansible.builtin.include_vars:
         file: "config/config.yml"
+      tags: always
 
     - name: "Check if Windows management is enabled"
       ansible.builtin.set_fact:
         windows_enabled: "{{ role_system_wsl_windows | default(false) }}"
+      tags: always
 
   tasks:
     - name: "Apply WAC role"
       ansible.builtin.import_role:
         name: "wac"
+      tags: chezmoi-windows
 
     - name: "Apply packages role"
       ansible.builtin.import_role:

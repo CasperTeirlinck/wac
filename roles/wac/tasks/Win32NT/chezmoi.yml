@@ -6,6 +6,7 @@
     - winget_result.rc != 0
     - "'No available upgrade found' not in winget_result.stdout"
     - "'already installed' not in winget_result.stdout"
+  tags: chezmoi-windows
 
 - name: Setup Windows dotfiles directory
   win_shell: |
@@ -15,6 +16,7 @@
       New-Item -ItemType Directory -Path "C:\Users\{{ ansible_user }}\.dotfiles" -Force
     }
   changed_when: false
+  tags: chezmoi-windows
 
 - name: Sync Windows dotfiles from WSL to Windows
   ansible.builtin.copy:
@@ -22,14 +24,17 @@
     dest: "C:\\Users\\{{ ansible_user }}\\.dotfiles\\"
     force: yes
   changed_when: false
+  tags: chezmoi-windows
 
 - name: Initialize chezmoi with Windows dotfiles
   win_shell: |
     chezmoi init -S "C:\Users\{{ ansible_user }}\.dotfiles"
   register: chezmoi_init
   changed_when: false
+  tags: chezmoi-windows
 
 - name: Apply Windows dotfiles
   win_shell: chezmoi apply -S "C:\Users\{{ ansible_user }}\.dotfiles" --force
   register: chezmoi_apply
   changed_when: chezmoi_apply.rc == 0
+  tags: chezmoi-windows

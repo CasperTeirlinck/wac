@@ -98,6 +98,13 @@ function update_nix() {
 function apply_chezmoi() {
     echo "→ 🗃️  Applying Chezmoi..."
     chezmoi apply
+    
+    echo "→ 🪟  Syncing Windows dotfiles..."
+    if [ "$dry" = true ]; then
+        ansible-playbook main.yml --tags chezmoi-windows --check --diff
+    else
+        ansible-playbook main.yml --tags chezmoi-windows
+    fi
 }
 
 # Command
