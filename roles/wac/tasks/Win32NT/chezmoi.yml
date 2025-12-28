@@ -1,0 +1,35 @@
+- name: Install chezmoi
+  win_shell: winget install --id twpayne.chezmoi --silent --accept-package-agreements --accept-source-agreements
+  register: winget_result
+  changed_when: "'Successfully installed' in winget_result.stdout"
+  failed_when: 
+    - winget_result.rc != 0
+    - "'No available upgrade found' not in winget_result.stdout"
+    - "'already installed' not in winget_result.stdout"
+
+- name: Setup Windows dotfiles directory
+  win_shell: |
+    if (Test-Path "C:\Users\{{ ansible_user }}\.dotfiles") {
+      Remove-Item -Path "C:\Users\{{ ansible_user }}\.dotfiles\*" -Recurse -Force
+    } else {
+      New-Item -ItemType Directory -Path "C:\Users\{{ ansible_user }}\.dotfiles" -Force
+    }
+  changed_when: false
+
+- name: Sync Windows dotfiles from WSL to Windows
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/home-windows/"
+    dest: "C:\\Users\\{{ ansible_user }}\\.dotfiles\\"
+    force: yes
+  changed_when: false
+
+- name: Initialize chezmoi with Windows dotfiles
+  win_shell: |
+    chezmoi init -S "C:\Users\{{ ansible_user }}\.dotfiles"
+  register: chezmoi_init
+  changed_when: false
+
+- name: Apply Windows dotfiles
+  win_shell: chezmoi apply -S "C:\Users\{{ ansible_user }}\.dotfiles" --force
+  register: chezmoi_apply
+  changed_when: chezmoi_apply.rc == 0

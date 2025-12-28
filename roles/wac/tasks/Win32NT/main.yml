@@ -1,0 +1,3 @@
+- name: "chezmoi tasks"
+  ansible.builtin.include_tasks:
+    file: "chezmoi.yml"

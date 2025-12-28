@@ -53,7 +53,11 @@
         windows_enabled: "{{ role_system_wsl_windows | default(false) }}"
 
   tasks:
-    - name: "Apply packages role for Windows"
+    - name: "Apply WAC role"
+      ansible.builtin.import_role:
+        name: "wac"
+
+    - name: "Apply packages role"
       ansible.builtin.import_role:
         name: "packages"
       when: 
