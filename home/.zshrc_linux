@@ -90,6 +90,7 @@ command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
 [[ ! -z "$SSH_AUTH_SOCK" ]] || eval "$(ssh-agent -s)" > /dev/null
+[[ ! -f ~/.ssh/id_ed25519 ]] || ssh-add ~/.ssh/id_ed25519 > /dev/null 2>&1
 [[ ! -f ~/.ssh/id_imec_gh ]] || ssh-add ~/.ssh/id_imec_gh > /dev/null 2>&1
 [[ ! -f ~/.ssh/id_imec_do ]] || ssh-add ~/.ssh/id_imec_do > /dev/null 2>&1
 [[ ! -f ~/.ssh/id_plotlytrial ]] || ssh-add ~/.ssh/id_plotlytrial > /dev/null 2>&1

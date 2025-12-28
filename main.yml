@@ -39,3 +39,25 @@
 
   handlers:
     - import_tasks: handlers/main.yml
+
+- hosts: windows
+  ignore_unreachable: yes
+
+  pre_tasks:
+    - name: "Load variables"
+      ansible.builtin.include_vars:
+        file: "config/config.yml"
+
+    - name: "Check if Windows management is enabled"
+      ansible.builtin.set_fact:
+        windows_enabled: "{{ role_system_wsl_windows | default(false) }}"
+
+  tasks:
+    - name: "Apply packages role for Windows"
+      ansible.builtin.import_role:
+        name: "packages"
+      when: 
+        - windows_enabled
+        - role_packages
+        - ansible_facts is defined
+        - ansible_facts.system is defined

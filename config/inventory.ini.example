@@ -1,2 +1,6 @@
 [localhost]
 127.0.0.1 ansible_connection=local ansible_user=casper
+
+[windows]
+; Obtain the Windows ip from WSL using `ip route show | grep default`
+172.x.x.x ansible_connection=ssh ansible_user=casper ansible_password=... ansible_ssh_common_args='-o PreferredAuthentications=password' ansible_shell_type=powershell

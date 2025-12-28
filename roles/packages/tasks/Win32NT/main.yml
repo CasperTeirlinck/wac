@@ -1,0 +1,10 @@
+- name: "Install Windows packages via winget"
+  win_shell: winget install --id {{ item }} --silent --accept-package-agreements --accept-source-agreements
+  loop: "{{ windows_packages }}"
+  when: windows_packages is defined
+  register: winget_result
+  changed_when: "'Successfully installed' in winget_result.stdout"
+  failed_when: 
+    - winget_result.rc != 0
+    - "'No available upgrade found' not in winget_result.stdout"
+    - "'already installed' not in winget_result.stdout"

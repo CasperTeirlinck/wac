@@ -5,6 +5,7 @@ role_system_network: false
 role_system_docker: false
 role_system_drivers: false
 role_system_wsl: false
+role_system_wsl_windows: false
 role_shell: true
 role_packages: true
 role_de: false
