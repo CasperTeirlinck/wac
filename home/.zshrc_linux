@@ -64,6 +64,7 @@ command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
 command -v poetry >/dev/null 2>&1 && poetry completions zsh > ~/.zfunc/_poetry
 command -v conveyor >/dev/null 2>&1 && conveyor completion zsh > ~/.zfunc/_conveyor
 
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 [ -f ~/.nix-profile/etc/profile.d/nix.sh ] && source ~/.nix-profile/etc/profile.d/nix.sh
 
 # Completion: Enable hidden files in cd completion, but without ./ and ../
