@@ -68,6 +68,7 @@ in {
         "bruno"
         "fd"
         "zellij"
+        "shellcheck"
         # system utils
         # "scroll-reverser"
     ];
