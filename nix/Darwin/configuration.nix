@@ -34,6 +34,7 @@ in {
         "dbeaver-community"
         "ghostty"
         "chatbox"
+        "claude-code"
         # "karabiner-elements" # not used to do actual key mappings
     ];
     homebrew.brews = [
