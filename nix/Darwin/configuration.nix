@@ -34,6 +34,7 @@ in {
         "dbeaver-community"
         "ghostty"
         "chatbox"
+        "claude-code"
         # "karabiner-elements" # not used to do actual key mappings
     ];
     homebrew.brews = [
@@ -68,6 +69,7 @@ in {
         "bruno"
         "fd"
         "zellij"
+        "shellcheck"
         # system utils
         # "scroll-reverser"
     ];

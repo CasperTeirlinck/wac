@@ -10,9 +10,9 @@ HISTSIZE=50000
 SAVEHIST=10000
 
 # Enable Powerlevel10k instant prompt
-# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-#   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-# fi
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
 
 # Update PATH
 command -v dircolors >/dev/null 2>&1 && eval "$(dircolors)"
@@ -27,8 +27,8 @@ export PATH="$PATH:$HOME/.rd/bin"
 export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
 
 # Set theme
-# source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
-# ZSH_THEME="powerlevel10k/powerlevel10k"
+source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Disable delay on pasting text
 DISABLE_MAGIC_FUNCTIONS="true"
@@ -46,14 +46,6 @@ fpath+=~/.asdf/completions
 
 # Completion: Load compinit + bashcompinit
 # only check cache once a day to prevent startup delay: https://gist.github.com/ctechols/ca1035271ad134841284
-# autoload -U compinit bashcompinit
-# if [[ -n ${ZDOTDIR}/.zcompdump(#qN.mh+24) ]]; then
-#   compinit
-#   bashcompinit
-# else
-#   compinit -C
-#   bashcompinit -C
-# fi
 autoload -Uz compinit bashcompinit
 for dump in ~/.zcompdump(N.mh+24); do
     compinit
@@ -75,8 +67,12 @@ command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
 
 # Completions
 command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
-command -v poetry >/dev/null 2>&1 && eval "$(poetry completions zsh > ~/.zfunc/_poetry)"
-command -v conveyor >/dev/null 2>&1 && eval "$(conveyor completion zsh > ~/.zfunc/_conveyor)"
+if command -v poetry >/dev/null 2>&1 && [[ ! -f ~/.zfunc/_poetry || ~/.zfunc/_poetry -ot $(command -v poetry) ]]; then
+    poetry completions zsh > ~/.zfunc/_poetry
+fi
+if command -v conveyor >/dev/null 2>&1 && [[ ! -f ~/.zfunc/_conveyor || ~/.zfunc/_conveyor -ot $(command -v conveyor) ]]; then
+    conveyor completion zsh > ~/.zfunc/_conveyor
+fi
 
 # Tool version manager: mise
 command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
@@ -118,7 +114,8 @@ export REQUESTS_CA_BUNDLE=${CERT_PATH}
 # Load p10k config
 # [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 # [[ -f ~/.config/shell/p10k.mise.zsh ]] && source ~/.config/shell/p10k.mise.zsh
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
-eval "$(starship init zsh)"
+# eval "$(starship init zsh)"
 
 # zprof # uncomment to profile startup time

@@ -47,6 +47,7 @@ in {
     pkgs.neofetch
     pkgs.eyedropper
     pkgs.gh
+    pkgs.claude-code
     (pkgs.nerd-fonts.fira-code)
 
     # # You can also create simple shell scripts directly inside your
