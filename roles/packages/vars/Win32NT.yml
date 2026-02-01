@@ -1,3 +1,5 @@
 windows_packages:
   - Microsoft.VisualStudioCode
   - Anthropic.ClaudeCode
+  - Casey.Just
+  
