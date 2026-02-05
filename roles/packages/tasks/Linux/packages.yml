@@ -26,6 +26,7 @@
       loop:
         - { name: wez/wezterm-linuxbrew, dirname: wez/homebrew-wezterm-linuxbrew }
         - { name: jvanbuel/flowrs, dirname: jvanbuel/homebrew-flowrs }
+        - { name: darksworm/homebrew-tap, dirname: darksworm/homebrew-tap }
 
     - name: Install packages
       command: "{{ brew_prefix }}/bin/brew install {{ item }}"
@@ -34,4 +35,5 @@
       loop:
         # - wezterm
         - flowrs
+        - argonaut
         - opencode
