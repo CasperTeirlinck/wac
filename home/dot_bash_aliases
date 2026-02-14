@@ -42,3 +42,6 @@ alias fix_zsh_hist='~/scripts/fix_corrupt_zsh_hist.sh'
 
 alias bat="bat --theme=OneHalfLight"
 alias k="kubectl"
+
+alias j="just"
+alias jc="just --choose"
