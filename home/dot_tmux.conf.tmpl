@@ -5,6 +5,13 @@ is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     
 set -s escape-time 1
 
+# Extended keys for Shift+Enter, etc. (needed for Claude Code in tmux)
+set -s extended-keys on
+set -as terminal-features 'xterm*:extkeys'
+
+# Pass Shift+Enter to applications (for Claude Code multi-line input)
+bind-key -n S-Enter send-keys Escape "[13;2u"
+
 # Colors
 set -g default-terminal "screen-256color"
 set-option -sa terminal-overrides ",xterm*:Tc"
@@ -22,8 +29,9 @@ set -g mouse on
 {{$prefix := ""}}
 {{ if eq .chezmoi.os "darwin" }}
 # tmux only supports binding to Meta or Ctrl where Meta = Alt on Mac.
-# so instead, keep the modifier to Ctrl, and remap Cmd-a to Ctrl-a in iterm.
-# in iterm, go to profile -> Keys -> Key Mappings -> map Cmd-a to send hex code 0x01.
+# so instead, keep the modifier to Ctrl, and remap Cmd-a to Ctrl-a in the terminal.
+# Ghostty: keybind = cmd+a=text:\x01
+# iTerm: profile -> Keys -> Key Mappings -> map Cmd-a to send hex code 0x01
 {{$prefix = "C-a"}}
 {{ else if eq .chezmoi.os "linux" }}
 {{$prefix = "C-a"}}

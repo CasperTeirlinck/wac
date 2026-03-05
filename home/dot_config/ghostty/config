@@ -1,0 +1,7 @@
+# Quick terminal (popup terminal with global hotkey)
+keybind = global:ctrl+grave_accent=toggle_quick_terminal
+quick-terminal-size = 50%
+quick-terminal-animation-duration = 0
+
+# Remap Cmd-a to Ctrl-a for tmux prefix
+keybind = cmd+a=text:\x01
