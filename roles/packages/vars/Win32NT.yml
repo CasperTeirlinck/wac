@@ -3,4 +3,5 @@ windows_packages:
   - Anthropic.ClaudeCode
   - Casey.Just
   - SteveYegge.Beads
+  - DoltHub.Dolt
   

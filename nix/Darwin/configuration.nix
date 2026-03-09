@@ -71,6 +71,7 @@ in {
         "zellij"
         "shellcheck"
         "beads"
+        "dolt"
         # system utils
         # "scroll-reverser"
     ];
