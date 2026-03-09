@@ -70,6 +70,7 @@ in {
         "fd"
         "zellij"
         "shellcheck"
+        "beads"
         # system utils
         # "scroll-reverser"
     ];
