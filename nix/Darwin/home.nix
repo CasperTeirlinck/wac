@@ -20,6 +20,9 @@ in {
     enable = true;
     userName = config-ext.git.userName;
     userEmail = config-ext.git.userEmail;
+    extraConfig = {
+      push.autoSetupRemote = true;
+    };
   };
 
   programs.home-manager.enable = true;
