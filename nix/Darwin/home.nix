@@ -18,9 +18,9 @@ in {
 
   programs.git = {
     enable = true;
-    userName = config-ext.git.userName;
-    userEmail = config-ext.git.userEmail;
-    extraConfig = {
+    settings = {
+      user.name = config-ext.git.userName;
+      user.email = config-ext.git.userEmail;
       push.autoSetupRemote = true;
     };
   };

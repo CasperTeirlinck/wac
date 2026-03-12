@@ -63,7 +63,6 @@ in {
         "starship"
         "dive"
         "rustscan"
-        "bruno"
         "fd"
         "zellij"
         "shellcheck"
@@ -77,7 +76,7 @@ in {
     ];
 
     fonts.packages = [
-        (pkgs.nerdfonts.override { fonts = [ "FiraCode" ]; })
+        pkgs.nerd-fonts.fira-code
     ];
 
     # TODO: figure out how to do this all in nix, for now key remaps are handeled by Karabiner-Elements
