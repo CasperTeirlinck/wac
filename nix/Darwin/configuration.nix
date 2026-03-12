@@ -9,17 +9,14 @@ in {
     system.stateVersion = 5;
 
     users.users.casper.home = "/Users/casper";
-    # Auto upgrade nix package and the daemon service.
-    services.nix-daemon.enable = true;
-    nix.useDaemon = true;
+    system.primaryUser = "casper";
     # Enable experimental nix command and flakes.
     nix.settings.experimental-features = "nix-command flakes";
     # Create /etc/bashrc that loads the nix-darwin environment.
     programs.zsh.enable = true;
     nixpkgs.hostPlatform = "aarch64-darwin";
     # Add ability to used TouchID for sudo authentication
-    security.pam.enableSudoTouchIdAuth = true;
-    nix.configureBuildUsers = true;
+    security.pam.services.sudo_local.touchIdAuth = true;
     # This does not install Homebrew itself
     homebrew.enable = true;
 
