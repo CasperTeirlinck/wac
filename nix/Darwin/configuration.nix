@@ -69,7 +69,7 @@ in {
         "beads"
         "dolt"
         "argocd"
-        "argonaut"
+        "darksworm/homebrew-tap/argonaut"
         # system utils
         # "scroll-reverser"
     ];
