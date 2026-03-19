@@ -68,6 +68,7 @@ in {
         "shellcheck"
         "beads"
         "dolt"
+        "argocd"
         # system utils
         # "scroll-reverser"
     ];
