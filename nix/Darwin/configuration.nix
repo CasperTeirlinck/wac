@@ -69,11 +69,13 @@ in {
         "beads"
         "dolt"
         "argocd"
+        "argonaut"
         # system utils
         # "scroll-reverser"
     ];
     homebrew.taps = [
         "common-fate/granted"
+        "darksworm/homebrew-tap"
     ];
 
     fonts.packages = [
