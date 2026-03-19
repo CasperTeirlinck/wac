@@ -116,7 +116,7 @@ in {
         dock.mru-spaces = false;
         dock.tilesize = 40;
         dock.persistent-apps = [
-            "/Applications/iTerm.app"
+            "/Applications/Ghostty.app"
             "/Applications/KeePassXC.app"
             "/Applications/Brave Browser.app"
             "/Applications/Obsidian.app"
