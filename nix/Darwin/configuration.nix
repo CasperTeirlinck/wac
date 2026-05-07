@@ -32,6 +32,7 @@ in {
         "ghostty"
         "chatbox"
         "claude-code"
+        "drawio"
         # "karabiner-elements" # not used to do actual key mappings
     ];
     homebrew.brews = [
