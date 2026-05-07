@@ -39,3 +39,22 @@ for entry in "${SOURCES[@]}"; do
 	rm -rf "$TMP_DIR"
 	TMP_DIR=""
 done
+
+# Apply user-owned skill preference overlays.
+# Each file in ./skill-preferences/<skill>.md is appended to the matching
+# ./skills/<skill>/SKILL.md after the base skill is fetched.
+PREFS_DIR="./skill-preferences"
+if [[ -d "$PREFS_DIR" ]]; then
+	for pref in "$PREFS_DIR"/*.md; do
+		[[ -f "$pref" ]] || continue
+		name="$(basename "$pref" .md)"
+		skill_md="./skills/$name/SKILL.md"
+		if [[ -f "$skill_md" ]]; then
+			printf '\n' >>"$skill_md"
+			cat "$pref" >>"$skill_md"
+			echo "Applied overlay: $pref -> $skill_md"
+		else
+			echo "Skipping overlay $pref (no matching SKILL.md at $skill_md)"
+		fi
+	done
+fi
