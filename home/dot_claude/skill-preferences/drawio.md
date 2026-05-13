@@ -187,9 +187,14 @@ For services that don't have a built-in stencil, prefer in this order:
 
 3. **Plain labeled rectangle** as a last resort.
 
-#### Avoid `image=img/lib/...` runtime path references
+#### Avoid runtime image references (`image=img/lib/...` and `image=https://...`)
 
-The `image=img/lib/<vendor>/<File>.svg` references that appear when dragging stencils from draw.io's shape browser only resolve at runtime in the desktop app. They look fine in the editor but render as missing-image icons in CLI-exported SVGs (the export doesn't bundle the referenced file). Either use a vector stencil shape (`shape=mxgraph.<library>.<name>`) or embed the asset as a data URL.
+Two kinds of `image=` style values resolve only at runtime in the desktop app and do **not** render in CLI-exported SVGs (the export doesn't bundle local assets nor fetch remote ones):
+
+- `image=img/lib/<vendor>/<File>.svg` — references to draw.io's bundled `img/lib/...` assets, often added automatically when dragging stencils from the shape browser.
+- `image=https://<host>/<path>` — references to logos hosted on the web (Wikipedia, vendor CDNs, etc.). Easy to accidentally introduce by pasting a URL into the shape's "edit image" dialog.
+
+For both, render is missing-image icons in the static SVG export. Either use a vector stencil shape (`shape=mxgraph.<library>.<name>`) or embed the asset as a data URL. For remote URLs: `curl -sSL -o <file> <url>` to download, base64-encode, then substitute (same flow as the asar extraction below, just skip the extract step).
 
 #### Extracting logos from the draw.io app bundle
 
