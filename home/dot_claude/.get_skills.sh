@@ -7,6 +7,8 @@ set -euo pipefail
 SOURCES=(
 	"https://github.com/obra/superpowers.git|skills|"
 	"https://github.com/jgraph/drawio-mcp.git|skill-cli/drawio|drawio"
+	"https://github.com/mattpocock/skills.git|skills/productivity/grill-me|grill-me"
+	"https://github.com/mattpocock/skills.git|skills/engineering/grill-with-docs|grill-with-docs"
 )
 
 TMP_DIR=""
