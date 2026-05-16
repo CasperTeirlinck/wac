@@ -1,43 +1,61 @@
 ---
 name: adr
-description: Generate a new Architecture Decision Record (ADR) for documenting architectural decisions.
+description: Generate an Architecture Decision Record (ADR). Supports two modes — full deliberated ADRs (with Context/Options/Recommendation/Decision sections) and minimal ad-hoc ADRs (1-3 sentences) for decisions made on the fly. Auto-detects the repo's ADR folder under docs/.
 ---
 
 # ADR Generation
 
-Create a new Architecture Decision Record.
+Invocation of this skill implies the user has already decided to record an ADR — don't second-guess that. Focus on capturing the decision well.
 
-## Instructions
+## Step 1: Find the ADR folder
 
-### Step 1: Check for Existing ADRs
+Search for an existing `adr` folder under `docs/`:
 
-Search `docs/adr/` to check if a similar decision already exists or find related ADRs to reference.
+1. `docs/adr/` (most common)
+2. `docs/*/adr/` (e.g., `docs/architecture/adr/`)
 
-### Step 2: Gather Information
+If none exists, create `docs/adr/`. Don't look outside `docs/` — keep ADRs together.
 
-If the user provided a topic as argument (e.g., `/adr kafka migration`), use that as the title and skip the title question.
+## Step 2: Choose the ADR mode
 
-Otherwise, gather information **one question at a time**. Ask a single question, then STOP and wait for the user's response before asking the next question:
+Two modes. Pick based on how the decision was reached. The sections must be **consistent within a file** — don't mix the two formats.
 
-1. **First**: Ask for the **Title** - a short, descriptive title for the decision
-2. **Second**: Ask for the **Context** - what problem requires a decision?
-3. **Third**: Ask for the **Options** - what options are being considered? (2-3 minimum)
-4. **Fourth** (optional): Ask if there is a **Recommendation** - is there already a preferred option?
+### Full ADR — deliberated decision
 
-Do NOT ask all questions at once. Ask one question, wait for the answer, then ask the next. Do NOT use the AskUserQuestion tool - just ask in plain text and wait for free text input from the user.
+Records the reasoning while a decision is being made (or just after, while it's fresh). Sections: Context, Options, Recommendation, Decision. Frontmatter has `status` (`proposed` | `decided` | `deprecated` | `superseded by ADR-NNNN`), `proposal_date`, `decision_date` (empty until decided), and `deciders`.
 
-### Step 3: Create the ADR File
+Template: [templates/full.md](./templates/full.md)
 
-1. Read the template from `docs/adr/template.md`
-2. Create file: `docs/adr/YYYY.MM.DD-kebab-case-title.md` (use today's date)
-3. Fill in the template:
-   - Status: `proposed`
-   - Deciders: ask user
-   - Proposal date: `DD/MM/YYYY` format
-   - Leave decision date empty
+### Minimal ad-hoc ADR — decision recorded after the fact
 
-### Naming Convention
+Captures a decision that was made on the fly so future readers know it was deliberate. Body is just title + 1-3 sentences: what was decided and why. Frontmatter has `status: decided`, both dates set to today, and `deciders: ad-hoc` to make it explicit that this ADR was not the product of a formal discussion.
 
-- Date: `YYYY.MM.DD` (e.g., `2025.10.14`)
-- Title: kebab-case, lowercase (e.g., `grafana-alerts-cleanup`)
-- Example: `2025.10.14-grafana-alerts-cleanup.md`
+Template: [templates/ad-hoc.md](./templates/ad-hoc.md)
+
+## Step 3: Gather information
+
+If the user supplied a topic as argument (e.g., `/adr kafka migration`), use it as the title and skip that question.
+
+Ask remaining questions **one at a time** in plain text — do NOT use AskUserQuestion. Wait for each answer before asking the next.
+
+**Full ADR** — ask in order:
+
+1. Title (skip if provided)
+2. Context (what problem requires a decision)
+3. Options
+4. Recommendation (optional — is there a preferred option?)
+5. Deciders
+
+**Minimal ad-hoc ADR** — ask only:
+
+1. Title (skip if provided)
+2. The 1-3 sentence body — what was decided and why
+
+## Step 4: Write the file
+
+- Path: `<adr-folder>/YYYY.MM.DD-kebab-slug.md` (e.g., `docs/adr/2026.05.16-kafka-migration.md`)
+- Read the chosen template from [templates/full.md](./templates/full.md) or [templates/ad-hoc.md](./templates/ad-hoc.md)
+- Substitute today's date for the `YYYY-MM-DD` placeholders and fill in the body
+- Write the file
+
+This naming convention and these templates are the ones this skill defines — do not try to detect or match a different convention from existing ADRs in the folder.
