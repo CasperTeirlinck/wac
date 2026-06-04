@@ -1,0 +1,7 @@
+{
+  "effortLevel": "xhigh",
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/statusline-command.sh"
+  }
+}
