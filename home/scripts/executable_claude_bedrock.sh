@@ -30,7 +30,7 @@ export ANTHROPIC_SMALL_FAST_MODEL
 
 # Recommended output token settings for Bedrock
 # https://code.claude.com/docs/en/amazon-bedrock#5-output-token-configuration
-export CLAUDE_CODE_MAX_OUTPUT_TOKENS=4096
-export MAX_THINKING_TOKENS=1024
+# export CLAUDE_CODE_MAX_OUTPUT_TOKENS=4096
+# export MAX_THINKING_TOKENS=1024
 
 claude "$@"
