@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Update Neovim stuff
+
+set -euo pipefail
+
+echo "==> Lazy sync (plugins)"
+nvim --headless "+Lazy! sync" "+qa"
+
+echo "==> TSUpdate (treesitter parsers)"
+nvim --headless "+lua require('nvim-treesitter').update():wait(300000)" "+qa"
+
+echo "==> Re-adding lock file into dotfiles"
+chezmoi re-add ~/.config/nvim/lazy-lock.json
+
+echo "Done. Review and commit lazy-lock.json in ~/.dotfiles when ready."

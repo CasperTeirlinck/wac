@@ -24,7 +24,6 @@ command -v z >/dev/null 2>&1 && alias cd='z'
 # command -v batcat >/dev/null 2>&1 && alias cat='batcat'
 alias vim='nvim'
 alias v='nvim'
-alias nvim-update='nvim --headless "+Lazy! sync" "+qa" && chezmoi re-add ~/.config/nvim/lazy-lock.json'
 alias py='python'
 alias ipython='python -m IPython'
 
