@@ -98,7 +98,11 @@ function update_nix() {
 function apply_chezmoi() {
     echo "→ 🗃️  Applying Chezmoi..."
     chezmoi apply
-    
+
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        return
+    fi
+
     echo "→ 🪟  Syncing Windows dotfiles..."
     if [ "$dry" = true ]; then
         ansible-playbook main.yml --tags chezmoi-windows --check --diff
