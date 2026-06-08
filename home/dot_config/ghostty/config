@@ -1,3 +1,5 @@
+theme = Atom One Dark
+
 # Quick terminal (popup terminal with global hotkey)
 keybind = global:ctrl+grave_accent=toggle_quick_terminal
 quick-terminal-size = 50%

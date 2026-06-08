@@ -1,36 +1,27 @@
 return {
-  { "Mofiqul/vscode.nvim" },
+  {
+    "navarasu/onedark.nvim",
+    opts = {
+      style = "dark",
+      colors = {
+        black = "#21252b",
+        bg0 = "#21252b",
+        bg1 = "#21252b",
+      },
+      highlights = {
+        Normal = { bg = "#21252b" },
+        NormalFloat = { bg = "#21252b" },
+        SignColumn = { bg = "#21252b" },
+        EndOfBuffer = { bg = "#21252b" },
+      },
+    },
+  },
   {
     "LazyVim/LazyVim",
     opts = {
-      colorscheme = "vscode",
+      colorscheme = "onedark",
     },
   },
 
   { "christoomey/vim-tmux-navigator" },
-
-  -- {
-  --   "zbirenbaum/copilot.lua",
-  --   -- version = false,
-  --   -- cmd = "Copilot",
-  --   -- build = ":Copilot auth",
-  --   -- event = "BufReadPost",
-  --   -- opts = {
-  --   --   suggestion = {
-  --   --     enabled = not vim.g.ai_cmp,
-  --   --     auto_trigger = true,
-  --   --     hide_during_completion = vim.g.ai_cmp,
-  --   --     keymap = {
-  --   --       accept = false, -- handled by nvim-cmp / blink.cmp
-  --   --       next = "<M-]>",
-  --   --       prev = "<M-[>",
-  --   --     },
-  --   --   },
-  --   --   panel = { enabled = false },
-  --   --   filetypes = {
-  --   --     markdown = true,
-  --   --     help = true,
-  --   --   },
-  --   -- },
-  -- },
 }
