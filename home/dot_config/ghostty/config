@@ -7,3 +7,16 @@ quick-terminal-animation-duration = 0
 
 # Remap Cmd-a to Ctrl-a for tmux prefix
 keybind = cmd+a=text:\x01
+
+# Send Ctrl+Arrow CSI sequences for word motion. Karabiner remaps
+# Cmd+arrow → Option+arrow globally, so Ghostty actually receives Option+arrow
+# even when we physically press Cmd+arrow — hence binding alt+ here, not cmd+.
+# (The cmd+ bindings are kept as a fallback in case the Karabiner rule is off.)
+keybind = alt+arrow_left=csi:1;5D
+keybind = alt+arrow_right=csi:1;5C
+keybind = alt+shift+arrow_left=csi:1;6D
+keybind = alt+shift+arrow_right=csi:1;6C
+keybind = cmd+arrow_left=csi:1;5D
+keybind = cmd+arrow_right=csi:1;5C
+keybind = cmd+shift+arrow_left=csi:1;6D
+keybind = cmd+shift+arrow_right=csi:1;6C
