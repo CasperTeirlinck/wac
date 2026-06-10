@@ -10,17 +10,95 @@ local map = vim.keymap.set
 -- map({ "n", "i", "v" }, "<C-a><Up>", "<cmd>TmuxNavigateUp<cr>", { desc = "Tmux Navigate Up" })                                                             
 -- map({ "n", "i", "v" }, "<C-a><Right>", "<cmd>TmuxNavigateRight<cr>", { desc = "Tmux Navigate Right" })  
 
--- Pane navigation via smart-splits. Moves between vim windows; at the
--- edge of the layout, falls through to the multiplexer (tmux or zellij,
--- auto-detected). See ~/.config/zellij/config.kdl for the zellij side
--- (autolock keeps `<C-a>` passing through to nvim).
-local function nav(dir)
-  return function() require("smart-splits")["move_cursor_" .. dir]() end
+-- Pane navigation by screen geometry. Handles real splits AND snacks
+-- picker "floats" (sidebars rendered as relative='win' floating windows
+-- that wincmd can't traverse). For each direction, find the
+-- geometrically-closest window in that direction; if none, hand off to
+-- smart-splits.mux which talks to whichever multiplexer is active
+-- (tmux/zellij/wezterm/kitty).
+local function mux_move(dir)
+  pcall(function() require("smart-splits.mux").move_pane(dir, false, "stop") end)
 end
-map({ "n", "i", "v" }, "<C-a><Left>",  nav("left"),  { desc = "Navigate left (vim/mux)" })
-map({ "n", "i", "v" }, "<C-a><Down>",  nav("down"),  { desc = "Navigate down (vim/mux)" })
-map({ "n", "i", "v" }, "<C-a><Up>",    nav("up"),    { desc = "Navigate up (vim/mux)" })
-map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right (vim/mux)" })
+-- Windows belonging to the same snacks picker as `cur_win` (input,
+-- list, preview). Used to exclude same-picker sub-windows from nav so
+-- "down" from a sidebar input doesn't land on the sibling list window.
+local function picker_sibling_wins(cur_win)
+  local set = {}
+  local ok, snacks = pcall(require, "snacks")
+  if not ok or not snacks.picker then return set end
+  for _, p in ipairs(snacks.picker.get() or {}) do
+    local wins = {}
+    if p.input and p.input.win then wins[#wins + 1] = p.input.win.win end
+    if p.list and p.list.win then wins[#wins + 1] = p.list.win.win end
+    if p.preview and p.preview.win then wins[#wins + 1] = p.preview.win.win end
+    local owns = false
+    for _, w in ipairs(wins) do
+      if w == cur_win then owns = true break end
+    end
+    if owns then
+      for _, w in ipairs(wins) do set[w] = true end
+    end
+  end
+  return set
+end
+
+local function nav(dir)
+  return function()
+    local cur = vim.api.nvim_get_current_win()
+    local siblings = picker_sibling_wins(cur)
+    local cur_pos = vim.api.nvim_win_get_position(cur)
+    local cur_w = vim.api.nvim_win_get_width(cur)
+    local cur_h = vim.api.nvim_win_get_height(cur)
+
+    local best, best_dist = nil, math.huge
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      if w ~= cur and not siblings[w] and vim.api.nvim_win_is_valid(w) then
+        local cfg = vim.api.nvim_win_get_config(w)
+        -- Skip non-embedded floats (e.g. completion popups) but include
+        -- snacks-style embedded floats (zindex < 50).
+        local skip = cfg.relative ~= "" and (cfg.zindex or 50) >= 50
+        if not skip then
+          local p = vim.api.nvim_win_get_position(w)
+          local pw = vim.api.nvim_win_get_width(w)
+          local ph = vim.api.nvim_win_get_height(w)
+          -- Direction check + overlap on the perpendicular axis so an
+          -- "off to the side" window doesn't get picked as a vertical
+          -- (or horizontal) neighbour.
+          local h_overlap = (p[2] < cur_pos[2] + cur_w) and (p[2] + pw > cur_pos[2])
+          local v_overlap = (p[1] < cur_pos[1] + cur_h) and (p[1] + ph > cur_pos[1])
+          local valid, dist = false, 0
+          if dir == "left" then
+            valid = v_overlap and (p[2] + pw <= cur_pos[2])
+            dist = cur_pos[2] - (p[2] + pw)
+          elseif dir == "right" then
+            valid = v_overlap and (p[2] >= cur_pos[2] + cur_w)
+            dist = p[2] - (cur_pos[2] + cur_w)
+          elseif dir == "up" then
+            valid = h_overlap and (p[1] + ph <= cur_pos[1])
+            dist = cur_pos[1] - (p[1] + ph)
+          elseif dir == "down" then
+            valid = h_overlap and (p[1] >= cur_pos[1] + cur_h)
+            dist = p[1] - (cur_pos[1] + cur_h)
+          end
+          if valid and dist < best_dist then
+            best, best_dist = w, dist
+          end
+        end
+      end
+    end
+
+    if best then
+      vim.api.nvim_set_current_win(best)
+    else
+      -- No nvim window in that direction → hand off to the multiplexer.
+      mux_move(dir)
+    end
+  end
+end
+map({ "n", "i", "v" }, "<C-a><Left>",  nav("left"),  { desc = "Navigate left" })
+map({ "n", "i", "v" }, "<C-a><Down>",  nav("down"),  { desc = "Navigate down" })
+map({ "n", "i", "v" }, "<C-a><Up>",    nav("up"),    { desc = "Navigate up" })
+map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" })
 
 -- Non-vim-style insert-mode selection.
 -- Enter Visual mode + letter motion, then <C-g> toggles to Select mode

@@ -5,6 +5,11 @@ is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     
 set -s escape-time 1
 
+# Forward terminal focus events so nvim's FocusGained/FocusLost fire when
+# switching between tmux panes (needed for the nvim git sidebar to refresh
+# after running git commands in another pane).
+set -g focus-events on
+
 # Extended keys for Shift+Enter, etc. (needed for Claude Code in tmux)
 set -s extended-keys on
 set -as terminal-features 'xterm*:extkeys'
@@ -24,6 +29,12 @@ set-option -g history-limit 10000
 
 # Mouse
 set -g mouse on
+
+# Mouse wheel: scroll 1 line per tick in copy-mode (default is 5).
+bind-key -T copy-mode-vi WheelUpPane send-keys -X -N 1 scroll-up
+bind-key -T copy-mode-vi WheelDownPane send-keys -X -N 1 scroll-down
+bind-key -T copy-mode WheelUpPane send-keys -X -N 1 scroll-up
+bind-key -T copy-mode WheelDownPane send-keys -X -N 1 scroll-down
 
 # Prefix
 {{$prefix := ""}}
