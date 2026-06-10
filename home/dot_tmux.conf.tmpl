@@ -114,9 +114,17 @@ bind -r S-Right resize-pane -R 5
 unbind m
 bind -r m resize-pane -Z
 
+# Window rename: prefix + t prompts for a name, renames the window, and
+# disables automatic-rename for it so the custom name sticks (otherwise
+# automatic-rename-format would overwrite it every status-interval tick).
+# Replaces the default clock-mode binding on `t`.
+unbind t
+bind-key t command-prompt -p "Rename window:" "rename-window '%%' ; setw automatic-rename off"
+
 # Pane border colors
 set -g pane-active-border-style fg=white
 set -g pane-border-style fg=color236
+set -g pane-border-status off
 
 # Config
 unbind r

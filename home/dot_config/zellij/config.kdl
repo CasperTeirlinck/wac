@@ -1,0 +1,93 @@
+// Zellij config — mirrors the tmux setup in ~/.tmux.conf.
+//
+// Prefix is Ctrl-a (Cmd-a on macOS is remapped to \x01 in Ghostty:
+//   keybind = cmd+a=text:\x01
+// see ~/.config/ghostty/config).
+//
+// Nvim passthrough: the zellij-autolock plugin (loaded below) puts
+// zellij into Locked mode whenever nvim/fzf/lazygit is the focused
+// process. In Locked mode every keystroke (including Ctrl-a) passes
+// through to the foreground program, so smart-splits.nvim can see
+// `<C-a><arrow>` and decide whether to move a vim window or fall
+// through to `zellij action move-focus`.
+
+keybinds clear-defaults=true {
+    shared {
+        // Hard reset out of any sticky mode.
+        bind "Ctrl g" { SwitchToMode "Normal"; }
+    }
+
+    normal {
+        bind "Ctrl a" { SwitchToMode "Tmux"; }
+    }
+
+    locked {
+        // Intentionally empty — autolock toggles this. Ctrl-g (shared)
+        // still works to bail out manually.
+    }
+
+    tmux {
+        bind "Esc"    { SwitchToMode "Normal"; }
+        bind "Ctrl c" { SwitchToMode "Normal"; }
+        // Ctrl-a Ctrl-a → send a literal Ctrl-a to the pane (tmux's `send-prefix`).
+        bind "Ctrl a" { Write 1; SwitchToMode "Normal"; }
+
+        // Splits — tmux: `\` = horizontal, `-` = vertical.
+        bind "\\" { NewPane "Right"; SwitchToMode "Normal"; }
+        bind "-"  { NewPane "Down";  SwitchToMode "Normal"; }
+
+        // Pane focus. When nvim is focused these never fire (autolock
+        // puts us in Locked mode and the chord reaches nvim instead).
+        bind "Left"  { MoveFocus "Left";  SwitchToMode "Normal"; }
+        bind "Right" { MoveFocus "Right"; SwitchToMode "Normal"; }
+        bind "Up"    { MoveFocus "Up";    SwitchToMode "Normal"; }
+        bind "Down"  { MoveFocus "Down";  SwitchToMode "Normal"; }
+
+        // Move panes (tmux: C-Left/C-Right swap-pane). Stays in Tmux
+        // mode so it's repeatable like tmux's `-r` flag.
+        bind "Ctrl Left"  { MovePane "Left";  }
+        bind "Ctrl Right" { MovePane "Right"; }
+
+        // Kill pane.
+        bind "x" { CloseFocus; SwitchToMode "Normal"; }
+
+        // Tab (window) nav — tmux: `,` `.` `<` `>` `c`.
+        bind "," { GoToPreviousTab; SwitchToMode "Normal"; }
+        bind "." { GoToNextTab;     SwitchToMode "Normal"; }
+        bind "<" { MoveTab "Left";  }
+        bind ">" { MoveTab "Right"; }
+        bind "c" { NewTab;          SwitchToMode "Normal"; }
+
+        // Resize (tmux: S-arrows).
+        bind "Shift Up"    { Resize "Increase Up";    }
+        bind "Shift Down"  { Resize "Increase Down";  }
+        bind "Shift Left"  { Resize "Increase Left";  }
+        bind "Shift Right" { Resize "Increase Right"; }
+
+        // Zoom (tmux: `m` -> resize-pane -Z).
+        bind "m" { ToggleFocusFullscreen; SwitchToMode "Normal"; }
+
+        // Detach session.
+        bind "d" { Detach; }
+    }
+}
+
+// zellij-autolock: switches zellij to Locked mode when one of the
+// listed commands is the foreground process in the focused pane. That
+// is what lets `Ctrl-a <arrow>` reach nvim. Pinned to `latest` — bump
+// or pin a version if it ever breaks.
+plugins {
+    autolock location="https://github.com/fresh2dev/zellij-autolock/releases/latest/download/zellij-autolock.wasm" {
+        triggers "nvim|vim|fzf|lazygit|atuin"
+    }
+}
+
+load_plugins {
+    "autolock"
+}
+
+default_mode      "normal"
+mouse_mode        true
+copy_on_select    true
+scroll_buffer_size 10000
+pane_frames       false

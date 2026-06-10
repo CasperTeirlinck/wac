@@ -10,3 +10,6 @@ vim.opt.selection = "exclusive"
 -- Lets the cursor sit one past end-of-line in normal/visual mode, matching
 -- insert mode. Without this, Shift+Right at end of line selects the wrong char.
 vim.opt.virtualedit = "onemore"
+
+-- Mouse wheel scroll step: 1 line per tick instead of the default 3.
+vim.opt.mousescroll = "ver:1,hor:1"

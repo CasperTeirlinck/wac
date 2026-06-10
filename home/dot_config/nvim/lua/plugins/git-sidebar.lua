@@ -1,0 +1,475 @@
+-- Persistent right-side "Source Control" sidebar with a TREE view of git
+-- changes. Built on a custom snacks picker source so we get tree
+-- rendering + fast `git status` data, without committing snacks source
+-- code into our repo.
+
+local function find_main_window()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].buftype == "" then
+      return win
+    end
+  end
+  return nil
+end
+
+local LEFT_SIDEBAR_WIDTH = 40
+local RIGHT_SIDEBAR_WIDTH = 50
+
+local function ensure_main_window()
+  local existing = find_main_window()
+  if existing then return existing end
+  local wins = vim.api.nvim_list_wins()
+  if #wins == 0 then return nil end
+  local sorted = {}
+  for _, w in ipairs(wins) do
+    table.insert(sorted, { win = w, col = vim.api.nvim_win_get_position(w)[2] })
+  end
+  table.sort(sorted, function(a, b) return a.col < b.col end)
+  local left_win, right_win = sorted[1].win, sorted[#sorted].win
+  vim.api.nvim_set_current_win(right_win)
+  vim.cmd("leftabove vnew")
+  local main_win = vim.api.nvim_get_current_win()
+  local placeholder_buf = vim.api.nvim_get_current_buf()
+  local candidates = {}
+  for _, b in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
+    if b.bufnr ~= placeholder_buf and vim.bo[b.bufnr].buftype == "" then
+      table.insert(candidates, b)
+    end
+  end
+  table.sort(candidates, function(a, b) return a.lastused > b.lastused end)
+  if #candidates > 0 then
+    vim.cmd("buffer " .. candidates[1].bufnr)
+    pcall(vim.api.nvim_buf_delete, placeholder_buf, {})
+  end
+  -- When there's no candidate, leave the placeholder listed so a
+  -- normal [No Name] tab appears in the bufferline.
+  pcall(vim.api.nvim_win_set_width, left_win, LEFT_SIDEBAR_WIDTH)
+  pcall(vim.api.nvim_win_set_width, right_win, RIGHT_SIDEBAR_WIDTH)
+  return main_win
+end
+
+-- Set of paths the user has collapsed in the git tree sidebar.
+local collapsed = {}
+
+local function open_and_diff(picker, item)
+  if not item then return end
+  if item.dir then
+    collapsed[item.file] = not collapsed[item.file]
+    -- Preserve cursor position across the refresh-triggered re-find.
+    if picker and picker.list and picker.list.set_target then
+      pcall(picker.list.set_target, picker.list)
+    end
+    if picker and picker.find then pcall(picker.find, picker) end
+    return
+  end
+  if not item.file then return end
+  local target = ensure_main_window()
+  if target then vim.api.nvim_set_current_win(target) end
+  vim.cmd("edit " .. vim.fn.fnameescape(item.file))
+  -- Poll for gitsigns to attach to the new buffer before calling
+  -- diffthis. The defer-by-100ms approach raced when gitsigns took
+  -- longer to attach, causing the diff to silently no-op.
+  local function try_diff(attempts)
+    if attempts > 30 then return end
+    if vim.b.gitsigns_status_dict then
+      pcall(vim.cmd, "Gitsigns diffthis HEAD")
+    else
+      vim.defer_fn(function() try_diff(attempts + 1) end, 50)
+    end
+  end
+  vim.defer_fn(function() try_diff(0) end, 30)
+end
+
+-- Cache of `git status` output. Invalidated explicitly when git state
+-- may have changed (file save, focus gain, stage action, manual refresh)
+-- so that folder toggles re-render instantly without re-running git.
+local status_cache = { cwd = nil, files = nil }
+
+local function invalidate_status_cache()
+  status_cache.cwd = nil
+  status_cache.files = nil
+end
+
+local function read_git_status(cwd)
+  if status_cache.cwd == cwd and status_cache.files then
+    return status_cache.files
+  end
+  local quoted = "'" .. cwd:gsub("'", "'\\''") .. "'"
+  local handle = io.popen("git -C " .. quoted .. " status --porcelain=v1 --untracked-files=all 2>/dev/null")
+  if not handle then return {} end
+  local output = handle:read("*a") or ""
+  handle:close()
+  local out = vim.split(output, "\n", { trimempty = true })
+  local files = {}
+  for _, line in ipairs(out) do
+    if #line >= 3 then
+      local status = line:sub(1, 2)
+      local path = line:sub(4)
+      local newpath = path:match("%-%> (.+)$")
+      if newpath then path = newpath end
+      path = path:gsub('^"', ""):gsub('"$', "")
+      files[path] = status
+    end
+  end
+  status_cache.cwd = cwd
+  status_cache.files = files
+  return files
+end
+
+-- Custom finder: builds a tree of git-changed files with parent dirs.
+-- Uses cached status data so folder collapse/expand is instant.
+local function git_tree_finder(opts, ctx)
+  return function(cb)
+    local cwd = (ctx and ctx.filter and ctx.filter.cwd) or vim.fn.getcwd()
+    local files = read_git_status(cwd)
+
+    local dirs = {}
+    local items = {}
+
+    local function ensure_dir(rel_dir)
+      if rel_dir == "" or rel_dir == "." then return nil end
+      if dirs[rel_dir] then return dirs[rel_dir] end
+      local parent_rel = rel_dir:match("^(.+)/[^/]+$")
+      local parent_item = parent_rel and ensure_dir(parent_rel) or nil
+      local item = {
+        file = cwd .. "/" .. rel_dir,
+        text = cwd .. "/" .. rel_dir,
+        dir = true,
+        open = true,
+        parent = parent_item,
+        last = true,
+      }
+      dirs[rel_dir] = item
+      table.insert(items, item)
+      return item
+    end
+
+    local paths = vim.tbl_keys(files)
+    table.sort(paths)
+    for _, path in ipairs(paths) do
+      local parent_rel = path:match("^(.+)/[^/]+$")
+      local parent_item = parent_rel and ensure_dir(parent_rel) or nil
+      table.insert(items, {
+        file = cwd .. "/" .. path,
+        text = cwd .. "/" .. path,
+        dir = false,
+        parent = parent_item,
+        last = true,
+        status = files[path],
+      })
+    end
+
+    -- Propagate file statuses up to ancestor directories so a collapsed
+    -- folder can display the aggregate status icon/color.
+    local Git = require("snacks.picker.source.git")
+    local function add_dir_status(dir_item, status)
+      dir_item.dir_status = dir_item.dir_status
+          and Git.merge_status(dir_item.dir_status, status)
+          or status
+    end
+    for _, item in ipairs(items) do
+      if not item.dir and item.status then
+        local p = item.parent
+        while p do
+          add_dir_status(p, item.status)
+          p = p.parent
+        end
+      end
+    end
+
+    -- Hide items whose ancestor is collapsed; set `open` flag on dirs
+    -- so the formatter shows open vs closed folder icons correctly.
+    local function is_hidden(item)
+      local p = item.parent
+      while p do
+        if collapsed[p.file] then return true end
+        p = p.parent
+      end
+      return false
+    end
+    local visible = {}
+    for _, item in ipairs(items) do
+      if not is_hidden(item) then
+        if item.dir then
+          item.open = not collapsed[item.file]
+          -- Show git status on collapsed dirs (matches snacks.explorer
+          -- behavior: closed folder picks up the aggregate child status).
+          item.status = (not item.open) and item.dir_status or nil
+        end
+        table.insert(visible, item)
+      end
+    end
+
+    -- Fix `last` flags within the visible set.
+    local last_per_parent = {}
+    for _, item in ipairs(visible) do
+      last_per_parent[item.parent or "__root__"] = item
+    end
+    for _, item in ipairs(visible) do
+      item.last = (last_per_parent[item.parent or "__root__"] == item)
+    end
+
+    for _, item in ipairs(visible) do cb(item) end
+  end
+end
+
+-- Helpers used by the leader-key shortcuts below: find the active
+-- git_tree picker and its currently-highlighted item.
+local function current_picker_item()
+  local ok, snacks = pcall(require, "snacks")
+  if not ok or not snacks.picker then return nil, nil end
+  local pickers = snacks.picker.get({ source = "git_tree" }) or {}
+  local picker = pickers[1]
+  if not picker or not picker.list or not picker.list.current then
+    return picker, nil
+  end
+  return picker, picker.list:current()
+end
+
+local function leader_stage()
+  local picker, item = current_picker_item()
+  if not picker or not item then return end
+  picker.list:set_target()
+  require("snacks.picker.actions").git_stage(picker)
+  vim.defer_fn(function()
+    invalidate_status_cache()
+    pcall(picker.find, picker)
+  end, 200)
+end
+
+local function leader_refresh()
+  local picker, _ = current_picker_item()
+  if not picker then return end
+  invalidate_status_cache()
+  pcall(picker.find, picker)
+end
+
+local function leader_open_no_diff()
+  local picker, item = current_picker_item()
+  if not picker or not item or not item.file or item.dir then return end
+  local target = ensure_main_window()
+  if target then vim.api.nvim_set_current_win(target) end
+  vim.cmd("edit " .. vim.fn.fnameescape(item.file))
+end
+
+local function leader_discard()
+  local picker, item = current_picker_item()
+  if not picker or not item or not item.file or item.dir then return end
+  local rel = vim.fn.fnamemodify(item.file, ":~:.")
+  vim.ui.select({ "Yes, discard", "Cancel" },
+    { prompt = "Discard changes to " .. rel .. "?" },
+    function(choice)
+      if choice ~= "Yes, discard" then return end
+      local cwd = vim.fn.getcwd()
+      local quoted = "'" .. cwd:gsub("'", "'\\''") .. "'"
+      local file_q = "'" .. item.file:gsub("'", "'\\''") .. "'"
+      os.execute("git -C " .. quoted .. " restore -- " .. file_q .. " 2>/dev/null")
+      os.execute("git -C " .. quoted .. " clean -f -- " .. file_q .. " 2>/dev/null")
+      -- For untracked files: `restore` doesn't handle them; clean -f removes.
+      invalidate_status_cache()
+      -- Reload the affected buffer if it's open
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_get_name(buf) == item.file then
+          vim.api.nvim_buf_call(buf, function() vim.cmd("checktime") end)
+        end
+      end
+      pcall(picker.find, picker)
+    end
+  )
+end
+
+return {
+  {
+    "folke/snacks.nvim",
+    opts = function(_, opts)
+      opts.picker = opts.picker or {}
+      opts.picker.sources = opts.picker.sources or {}
+      opts.picker.sources.git_tree = vim.tbl_deep_extend("force",
+        opts.picker.sources.git_tree or {}, {
+          finder = git_tree_finder,
+          format = "file",
+          tree = true,
+          formatters = { file = { filename_only = true } },
+          matcher = { sort_empty = false, fuzzy = false },
+          auto_close = false,
+          preview = false,
+          focus = false,
+          show_empty = true,
+          layout = {
+            preset = "sidebar",
+            preview = false,
+            layout = { position = "right", width = RIGHT_SIDEBAR_WIDTH },
+          },
+          confirm = open_and_diff,
+          -- Picker-local actions and keybinds:
+          --   r = refresh (manual cache-invalidating reload)
+          --   s = stage/unstage current file then refresh
+          actions = {
+            git_tree_refresh = function(picker)
+              invalidate_status_cache()
+              picker:find()
+            end,
+            git_tree_stage = function(picker)
+              local Actions = require("snacks.picker.actions")
+              Actions.git_stage(picker)
+              -- snacks's git_stage runs git asynchronously and calls
+              -- picker:refresh() when done. Invalidate our cache shortly
+              -- after so the next refresh fetches fresh status.
+              vim.defer_fn(function()
+                invalidate_status_cache()
+                pcall(picker.find, picker)
+              end, 200)
+            end,
+          },
+          win = {
+            list = {
+              keys = {
+                ["s"] = "git_tree_stage",
+                ["r"] = "git_tree_refresh",
+              },
+            },
+            input = {
+              keys = {
+                ["s"] = { "git_tree_stage", mode = { "n" } },
+                ["r"] = { "git_tree_refresh", mode = { "n" } },
+              },
+            },
+          },
+        })
+    end,
+    keys = {
+      { "<leader>gs", leader_stage,        desc = "Git: stage/unstage current file" },
+      { "<leader>gr", leader_refresh,      desc = "Git: refresh tree sidebar" },
+      { "<leader>go", leader_open_no_diff, desc = "Git: open file without diff" },
+      { "<leader>gx", leader_discard,      desc = "Git: discard changes (restore)" },
+    },
+    init = function()
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "VeryLazy",
+        callback = function()
+          vim.schedule(function() require("snacks").picker.git_tree() end)
+        end,
+      })
+
+      -- Unlist any `nofile` buffers (e.g. gitsigns' diff scratch buffer)
+      -- so they don't appear as `[No Name]` tabs in the bufferline.
+      vim.api.nvim_create_autocmd("BufWinEnter", {
+        callback = function(args)
+          if vim.bo[args.buf].buftype == "nofile" then
+            vim.bo[args.buf].buflisted = false
+          end
+        end,
+      })
+
+      -- Skip insert mode when entering the git_tree picker's input window.
+      vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+        callback = function()
+          if vim.bo.filetype ~= "snacks_picker_input" then return end
+          local current_win = vim.api.nvim_get_current_win()
+          local ok, snacks = pcall(require, "snacks")
+          if not ok or not snacks.picker then return end
+          for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
+            if p.input and p.input.win and p.input.win.win == current_win then
+              vim.schedule(function() vim.cmd("stopinsert") end)
+              return
+            end
+          end
+        end,
+      })
+
+      -- Debounced refresh of the git_tree picker on events that may
+      -- have changed git state.
+      local refresh_timer
+      local function refresh_git_picker()
+        if refresh_timer then
+          refresh_timer:stop()
+          refresh_timer:close()
+        end
+        refresh_timer = vim.defer_fn(function()
+          refresh_timer = nil
+          invalidate_status_cache()
+          local ok, snacks = pcall(require, "snacks")
+          if not ok or not snacks.picker then return end
+          for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
+            pcall(p.find, p)
+          end
+        end, 250)
+      end
+      vim.api.nvim_create_autocmd(
+        { "BufWritePost", "FocusGained", "DirChanged" },
+        { callback = refresh_git_picker }
+      )
+
+      -- Resolve an orphaned diff window: one window left in diff mode
+      -- means its partner just went away. If the orphan holds a scratch
+      -- (nofile) buffer like gitsigns' HEAD view, close that window. If
+      -- it holds a normal file buffer, just turn off diff mode so the
+      -- file stays visible without the diff highlighting.
+      local function cleanup_orphan_diff()
+        local diff_wins = {}
+        for _, w in ipairs(vim.api.nvim_list_wins()) do
+          if vim.api.nvim_win_is_valid(w) and vim.wo[w].diff then
+            table.insert(diff_wins, w)
+          end
+        end
+        if #diff_wins ~= 1 then return false end
+        local orphan = diff_wins[1]
+        local buf = vim.api.nvim_win_get_buf(orphan)
+        if vim.bo[buf].buftype == "nofile" then
+          pcall(vim.api.nvim_win_close, orphan, true)
+        else
+          pcall(function() vim.wo[orphan].diff = false end)
+        end
+        return true
+      end
+
+      -- Maintain a main editor window when only sidebars remain, wipe
+      -- orphaned listed buffers so :q closes both window and tab, and
+      -- clean up orphaned diff windows.
+      vim.api.nvim_create_autocmd("WinClosed", {
+        callback = function(args)
+          local closed_win = tonumber(args.match)
+          local closed_buf = closed_win and vim.api.nvim_win_get_buf(closed_win)
+          vim.schedule(function()
+            if vim.v.exiting ~= vim.NIL and vim.v.exiting ~= nil then return end
+            if #vim.api.nvim_list_wins() == 0 then return end
+
+            local cleaning_diff = cleanup_orphan_diff()
+
+            if not cleaning_diff
+                and closed_buf
+                and vim.api.nvim_buf_is_valid(closed_buf)
+                and vim.bo[closed_buf].buftype == ""
+                and vim.bo[closed_buf].buflisted then
+              local still_shown = false
+              for _, w in ipairs(vim.api.nvim_list_wins()) do
+                if vim.api.nvim_win_get_buf(w) == closed_buf then
+                  still_shown = true
+                  break
+                end
+              end
+              if not still_shown then
+                pcall(vim.api.nvim_buf_delete, closed_buf, {})
+              end
+            end
+
+            if not find_main_window() then ensure_main_window() end
+          end)
+        end,
+      })
+
+      -- <leader>bd (Snacks.bufdelete) keeps the window alive but pulls
+      -- the file out from under us — no WinClosed fires, but a buffer
+      -- has gone away. Re-check for orphaned diffs after such events.
+      vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
+        callback = function()
+          vim.schedule(function()
+            cleanup_orphan_diff()
+            if not find_main_window() then ensure_main_window() end
+          end)
+        end,
+      })
+    end,
+  },
+}

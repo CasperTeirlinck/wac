@@ -18,3 +18,14 @@
 --     end)
 --   end,
 -- })
+
+-- Tone down indent guides: very dim by default, slightly brighter for
+-- the focused scope. Overrides snacks's defaults (which inherit from
+-- the colorscheme and end up red on onedark).
+local function set_indent_hls()
+  vim.api.nvim_set_hl(0, "SnacksIndent",      { fg = "#2c313a" })
+  vim.api.nvim_set_hl(0, "SnacksIndentScope", { fg = "#4b5263" })
+  vim.api.nvim_set_hl(0, "SnacksIndentChunk", { fg = "#4b5263" })
+end
+set_indent_hls()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_indent_hls })

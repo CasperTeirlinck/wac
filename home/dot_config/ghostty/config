@@ -20,3 +20,20 @@ keybind = cmd+arrow_left=csi:1;5D
 keybind = cmd+arrow_right=csi:1;5C
 keybind = cmd+shift+arrow_left=csi:1;6D
 keybind = cmd+shift+arrow_right=csi:1;6C
+
+# Forward Cmd+C as Ctrl+C so nvim can map <C-c> to copy the nvim
+# selection (default ghostty behavior copies the terminal selection,
+# not the nvim selection). nvim's <C-c> mappings override what would
+# otherwise be the "abort" default in each mode.
+keybind = cmd+c=text:\x03
+
+# Forward Cmd+Z as Ctrl+Z so nvim's <C-z> = undo mapping fires.
+keybind = cmd+z=text:\x1a
+
+# Forward Cmd+Shift+F as the CSI-u sequence for Ctrl+Shift+F so nvim's
+# <C-S-f> mapping fires regardless of whether Karabiner intercepts the
+# Cmd key.
+keybind = cmd+shift+f=csi:102;6u
+
+# Forward Cmd+X as Ctrl+X so nvim's <C-x> = cut mapping fires.
+keybind = cmd+x=text:\x18
