@@ -15,8 +15,34 @@ return {
         -- Render the most-recently-active file in bold.
         -- Uses the buffer-info `lastused` timestamp so diff scratch
         -- buffers (which aren't `buflisted`) don't override the bold.
+        --
+        -- Also distinguishes partial-staged files (XY = staged + fresh
+        -- worktree edit, e.g. "MM", "AM"). Snacks's default treats
+        -- these as fully staged. We render the filename as
+        -- modified-unstaged (orange) but keep the staged glyph (purple
+        -- ●) as the icon so it's visually distinct from both
+        -- fully-staged and fully-unstaged.
         format = function(item, picker)
-          local result = require("snacks.picker.format").file(item, picker)
+          local Format = require("snacks.picker.format")
+          local original_status, partial = item.status, false
+          if original_status and #original_status == 2 then
+            local x = original_status:sub(1, 1)
+            local y = original_status:sub(2, 2)
+            if x:match("[MADRC]") and y:match("[MD]") then
+              partial = true
+              item.status = " " .. y
+            end
+          end
+          local result = Format.file(item, picker)
+          if partial then
+            item.status = original_status
+            local staged_icon = (picker.opts.icons.git or {}).staged or "●"
+            for _, chunk in ipairs(result) do
+              if chunk.virt_text_pos == "right_align" and chunk.virt_text then
+                chunk.virt_text[1] = { staged_icon, "SnacksPickerGitStatusStaged" }
+              end
+            end
+          end
           local function active_file()
             local buffers = vim.fn.getbufinfo({ buflisted = 1 })
             table.sort(buffers, function(a, b) return a.lastused > b.lastused end)

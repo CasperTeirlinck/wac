@@ -37,3 +37,7 @@ keybind = cmd+shift+f=csi:102;6u
 
 # Forward Cmd+X as Ctrl+X so nvim's <C-x> = cut mapping fires.
 keybind = cmd+x=text:\x18
+
+# Send the CSI-u sequence for Ctrl+Enter so nvim's <C-CR> mapping fires.
+# (By default terminals deliver Ctrl+Enter as a plain CR.)
+keybind = ctrl+enter=csi:13;5u

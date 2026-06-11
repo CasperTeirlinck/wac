@@ -17,6 +17,9 @@ set -as terminal-features 'xterm*:extkeys'
 # Pass Shift+Enter to applications (for Claude Code multi-line input)
 bind-key -n S-Enter send-keys Escape "[13;2u"
 
+# Pass Ctrl+Enter through as CSI-u so nvim's <C-CR> mapping fires.
+bind-key -n C-Enter send-keys Escape "[13;5u"
+
 # Colors
 set -g default-terminal "screen-256color"
 set-option -sa terminal-overrides ",xterm*:Tc"

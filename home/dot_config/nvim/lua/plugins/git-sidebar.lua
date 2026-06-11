@@ -52,7 +52,7 @@ end
 -- Set of paths the user has collapsed in the git tree sidebar.
 local collapsed = {}
 
-local function open_and_diff(picker, item)
+local function open_file(picker, item)
   if not item then return end
   if item.dir then
     collapsed[item.file] = not collapsed[item.file]
@@ -64,6 +64,13 @@ local function open_and_diff(picker, item)
     return
   end
   if not item.file then return end
+  local target = ensure_main_window()
+  if target then vim.api.nvim_set_current_win(target) end
+  vim.cmd("edit " .. vim.fn.fnameescape(item.file))
+end
+
+local function open_with_diff(item)
+  if not item or not item.file or item.dir then return end
   local target = ensure_main_window()
   if target then vim.api.nvim_set_current_win(target) end
   vim.cmd("edit " .. vim.fn.fnameescape(item.file))
@@ -145,18 +152,35 @@ local function git_tree_finder(opts, ctx)
       return item
     end
 
+    -- When the index (X) is staged AND the worktree (Y) has a fresh
+    -- change on top (e.g. "MM", "AM"), snacks's git_status treats the
+    -- file as fully staged because the first char matches the staged
+    -- pattern — purple S icon, no hint that there are uncommitted
+    -- edits. Force the display status to the worktree side AND tag the
+    -- item so our custom formatter can render the staged icon (purple
+    -- ●) alongside the modified filename color (orange).
+    local function display_status(xy)
+      local x, y = xy:sub(1, 1), xy:sub(2, 2)
+      if x:match("[MADRC]") and y:match("[MD]") then
+        return " " .. y, true
+      end
+      return xy, false
+    end
+
     local paths = vim.tbl_keys(files)
     table.sort(paths)
     for _, path in ipairs(paths) do
       local parent_rel = path:match("^(.+)/[^/]+$")
       local parent_item = parent_rel and ensure_dir(parent_rel) or nil
+      local status, partial = display_status(files[path])
       table.insert(items, {
         file = cwd .. "/" .. path,
         text = cwd .. "/" .. path,
         dir = false,
         parent = parent_item,
         last = true,
-        status = files[path],
+        status = status,
+        partial_staged = partial,
       })
     end
 
@@ -245,12 +269,9 @@ local function leader_refresh()
   pcall(picker.find, picker)
 end
 
-local function leader_open_no_diff()
-  local picker, item = current_picker_item()
-  if not picker or not item or not item.file or item.dir then return end
-  local target = ensure_main_window()
-  if target then vim.api.nvim_set_current_win(target) end
-  vim.cmd("edit " .. vim.fn.fnameescape(item.file))
+local function leader_open_with_diff()
+  local _, item = current_picker_item()
+  open_with_diff(item)
 end
 
 local function leader_discard()
@@ -285,10 +306,31 @@ return {
     opts = function(_, opts)
       opts.picker = opts.picker or {}
       opts.picker.sources = opts.picker.sources or {}
+      -- Format wrapper: renders normally via the built-in file format,
+      -- but for files whose XY status combines a staged change AND a
+      -- fresh worktree change (item.partial_staged), it replaces the
+      -- right-aligned status icon with the staged glyph (●) colored
+      -- purple, while leaving the filename in the modified (orange)
+      -- color the underlying format already applied. This makes
+      -- partial-staged files visually distinct from both fully-staged
+      -- and fully-unstaged files.
+      local function git_tree_format(item, picker)
+        local Format = require("snacks.picker.format")
+        local result = Format.file(item, picker)
+        if not item.partial_staged then return result end
+        local staged_icon = (picker.opts.icons.git or {}).staged or "●"
+        for _, chunk in ipairs(result) do
+          if chunk.virt_text_pos == "right_align" and chunk.virt_text then
+            chunk.virt_text[1] = { staged_icon, "SnacksPickerGitStatusStaged" }
+          end
+        end
+        return result
+      end
+
       opts.picker.sources.git_tree = vim.tbl_deep_extend("force",
         opts.picker.sources.git_tree or {}, {
           finder = git_tree_finder,
-          format = "file",
+          format = git_tree_format,
           tree = true,
           formatters = { file = { filename_only = true } },
           matcher = { sort_empty = false, fuzzy = false },
@@ -301,7 +343,7 @@ return {
             preview = false,
             layout = { position = "right", width = RIGHT_SIDEBAR_WIDTH },
           },
-          confirm = open_and_diff,
+          confirm = open_file,
           -- Picker-local actions and keybinds:
           --   r = refresh (manual cache-invalidating reload)
           --   s = stage/unstage current file then refresh
@@ -339,10 +381,10 @@ return {
         })
     end,
     keys = {
-      { "<leader>gs", leader_stage,        desc = "Git: stage/unstage current file" },
-      { "<leader>gr", leader_refresh,      desc = "Git: refresh tree sidebar" },
-      { "<leader>go", leader_open_no_diff, desc = "Git: open file without diff" },
-      { "<leader>gx", leader_discard,      desc = "Git: discard changes (restore)" },
+      { "<leader>gs", leader_stage,          desc = "Git: stage/unstage current file" },
+      { "<leader>gr", leader_refresh,        desc = "Git: refresh tree sidebar" },
+      { "<leader>gd", leader_open_with_diff, desc = "Git: open file with diff vs HEAD" },
+      { "<leader>gx", leader_discard,        desc = "Git: discard changes (restore)" },
     },
     init = function()
       vim.api.nvim_create_autocmd("User", {

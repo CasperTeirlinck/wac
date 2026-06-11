@@ -100,6 +100,11 @@ map({ "n", "i", "v" }, "<C-a><Down>",  nav("down"),  { desc = "Navigate down" })
 map({ "n", "i", "v" }, "<C-a><Up>",    nav("up"),    { desc = "Navigate up" })
 map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" })
 
+-- <C-a>[ / <C-a>]: cycle through bufferline buffers (mirrors tmux prefix
+-- window navigation, since `<C-a>` is also the tmux prefix).
+map({ "n", "i", "v" }, "<C-a>[", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
+map({ "n", "i", "v" }, "<C-a>]", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
+
 -- Non-vim-style insert-mode selection.
 -- Enter Visual mode + letter motion, then <C-g> toggles to Select mode
 -- so typing replaces the selection. Letter motions are used (not arrow
@@ -117,6 +122,9 @@ map("i", "<S-End>",   "<C-o>v$<C-g>", { desc = "Select to end of line" })
 -- completion plugins don't re-trigger on the cursor move.
 map("i", "<C-Left>",    "<Cmd>normal! b<CR>", { desc = "Move word left" })
 map("i", "<C-Right>",   "<Cmd>normal! w<CR>", { desc = "Move word right" })
+-- Same word motion in normal & visual modes.
+map({ "n", "x" }, "<C-Left>",  "b", { desc = "Move word left" })
+map({ "n", "x" }, "<C-Right>", "w", { desc = "Move word right" })
 -- Word selection: enter Visual, extend by word, then toggle to Select
 -- mode so typing replaces the selection.
 map("i", "<C-S-Left>",  "<C-o>vb<C-g>", { desc = "Select word left" })
@@ -160,7 +168,17 @@ map("i", "<C-x>", '<Cmd>normal! "+dd<CR>',      { desc = "Cut line to clipboard"
 
 -- Ctrl+Shift+F: global text search (grep across project).
 -- F1: global file search (fuzzy find files in project).
-local function grep()  require("snacks").picker.grep()  end
-local function files() require("snacks").picker.files() end
-map({ "n", "i", "v", "s" }, "<C-S-f>", grep,  { desc = "Search across files (grep)" })
-map({ "n", "i", "v", "s" }, "<F1>",    files, { desc = "Find files in project" })
+-- F3: search open buffers.
+-- F12: go to definition (LSP).
+local function grep()       require("snacks").picker.grep()             end
+local function files()      require("snacks").picker.files()            end
+local function buffers()    require("snacks").picker.buffers()          end
+local function definition() require("snacks").picker.lsp_definitions() end
+map({ "n", "i", "v", "s" }, "<C-S-f>", grep,       { desc = "Search across files (grep)" })
+map({ "n", "i", "v", "s" }, "<F1>",    files,      { desc = "Find files in project" })
+map({ "n", "i", "v", "s" }, "<F3>",    buffers,    { desc = "Search open buffers" })
+map({ "n", "i", "v", "s" }, "<F12>",   definition, { desc = "Go to definition" })
+map({ "n", "i", "v", "s" }, "<C-CR>",  definition, { desc = "Go to definition" })
+-- Fallback: bind the raw CSI-u sequence for Ctrl+Enter in case the
+-- terminal stack delivers it without translating to <C-CR>.
+map({ "n", "i", "v", "s" }, "<Esc>[13;5u", definition, { desc = "Go to definition" })
