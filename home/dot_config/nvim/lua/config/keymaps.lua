@@ -4,12 +4,6 @@
 
 local map = vim.keymap.set
 
---- Tmux Navigator keymaps                                                                                                                                 
--- map({ "n", "i", "v" }, "<C-a><Left>", "<cmd>TmuxNavigateLeft<cr>", { desc = "Tmux Navigate Left" })                                                       
--- map({ "n", "i", "v" }, "<C-a><Down>", "<cmd>TmuxNavigateDown<cr>", { desc = "Tmux Navigate Down" })                                                       
--- map({ "n", "i", "v" }, "<C-a><Up>", "<cmd>TmuxNavigateUp<cr>", { desc = "Tmux Navigate Up" })                                                             
--- map({ "n", "i", "v" }, "<C-a><Right>", "<cmd>TmuxNavigateRight<cr>", { desc = "Tmux Navigate Right" })  
-
 -- Pane navigation by screen geometry. Handles real splits AND snacks
 -- picker "floats" (sidebars rendered as relative='win' floating windows
 -- that wincmd can't traverse). For each direction, find the
@@ -17,7 +11,9 @@ local map = vim.keymap.set
 -- smart-splits.mux which talks to whichever multiplexer is active
 -- (tmux/zellij/wezterm/kitty).
 local function mux_move(dir)
-  pcall(function() require("smart-splits.mux").move_pane(dir, false, "stop") end)
+  pcall(function()
+    require("smart-splits.mux").move_pane(dir, false, "stop")
+  end)
 end
 -- Windows belonging to the same snacks picker as `cur_win` (input,
 -- list, preview). Used to exclude same-picker sub-windows from nav so
@@ -25,18 +21,31 @@ end
 local function picker_sibling_wins(cur_win)
   local set = {}
   local ok, snacks = pcall(require, "snacks")
-  if not ok or not snacks.picker then return set end
+  if not ok or not snacks.picker then
+    return set
+  end
   for _, p in ipairs(snacks.picker.get() or {}) do
     local wins = {}
-    if p.input and p.input.win then wins[#wins + 1] = p.input.win.win end
-    if p.list and p.list.win then wins[#wins + 1] = p.list.win.win end
-    if p.preview and p.preview.win then wins[#wins + 1] = p.preview.win.win end
+    if p.input and p.input.win then
+      wins[#wins + 1] = p.input.win.win
+    end
+    if p.list and p.list.win then
+      wins[#wins + 1] = p.list.win.win
+    end
+    if p.preview and p.preview.win then
+      wins[#wins + 1] = p.preview.win.win
+    end
     local owns = false
     for _, w in ipairs(wins) do
-      if w == cur_win then owns = true break end
+      if w == cur_win then
+        owns = true
+        break
+      end
     end
     if owns then
-      for _, w in ipairs(wins) do set[w] = true end
+      for _, w in ipairs(wins) do
+        set[w] = true
+      end
     end
   end
   return set
@@ -95,9 +104,9 @@ local function nav(dir)
     end
   end
 end
-map({ "n", "i", "v" }, "<C-a><Left>",  nav("left"),  { desc = "Navigate left" })
-map({ "n", "i", "v" }, "<C-a><Down>",  nav("down"),  { desc = "Navigate down" })
-map({ "n", "i", "v" }, "<C-a><Up>",    nav("up"),    { desc = "Navigate up" })
+map({ "n", "i", "v" }, "<C-a><Left>", nav("left"), { desc = "Navigate left" })
+map({ "n", "i", "v" }, "<C-a><Down>", nav("down"), { desc = "Navigate down" })
+map({ "n", "i", "v" }, "<C-a><Up>", nav("up"), { desc = "Navigate up" })
 map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" })
 
 -- Pane resize: <C-a><S-Arrow> mirrors tmux's `prefix S-Arrow`. Uses
@@ -108,12 +117,14 @@ map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" }
 -- dot_tmux.conf.tmpl.
 local function resize(dir)
   return function()
-    pcall(function() require("smart-splits")["resize_" .. dir]() end)
+    pcall(function()
+      require("smart-splits")["resize_" .. dir]()
+    end)
   end
 end
-map({ "n", "i", "v" }, "<C-a><S-Left>",  resize("left"),  { desc = "Resize left"  })
-map({ "n", "i", "v" }, "<C-a><S-Down>",  resize("down"),  { desc = "Resize down"  })
-map({ "n", "i", "v" }, "<C-a><S-Up>",    resize("up"),    { desc = "Resize up"    })
+map({ "n", "i", "v" }, "<C-a><S-Left>", resize("left"), { desc = "Resize left" })
+map({ "n", "i", "v" }, "<C-a><S-Down>", resize("down"), { desc = "Resize down" })
+map({ "n", "i", "v" }, "<C-a><S-Up>", resize("up"), { desc = "Resize up" })
 map({ "n", "i", "v" }, "<C-a><S-Right>", resize("right"), { desc = "Resize right" })
 
 -- <C-a>[ / <C-a>]: cycle through bufferline buffers (mirrors tmux prefix
@@ -121,29 +132,39 @@ map({ "n", "i", "v" }, "<C-a><S-Right>", resize("right"), { desc = "Resize right
 map({ "n", "i", "v" }, "<C-a>[", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
 map({ "n", "i", "v" }, "<C-a>]", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
 
+-- <C-a>x: close the current buffer. Mirrors tmux's `prefix x` (close
+-- pane); the outer tmux already forwards `C-a x` here when the active
+-- pane runs vim (see the `bind-key x` chain in dot_tmux.conf.tmpl), so
+-- we just need the matching keymap on this side. Snacks.bufdelete keeps
+-- the window alive (unlike :bdelete, which closes the window if it was
+-- the only buffer in it) — important so the sidebars stay put.
+map({ "n", "i", "v" }, "<C-a>x", function()
+  require("snacks").bufdelete()
+end, { desc = "Close buffer" })
+
 -- Non-vim-style insert-mode selection.
 -- Enter Visual mode + letter motion, then <C-g> toggles to Select mode
 -- so typing replaces the selection. Letter motions are used (not arrow
 -- keys) because keymodel=stopsel cancels Select mode on unshifted special keys.
-map("i", "<S-Left>",  "<C-o>vh<C-g>", { desc = "Select character left" })
+map("i", "<S-Left>", "<C-o>vh<C-g>", { desc = "Select character left" })
 map("i", "<S-Right>", "<C-o>vl<C-g>", { desc = "Select character right" })
-map("i", "<S-Up>",    "<C-o>vk<C-g>", { desc = "Select line up" })
-map("i", "<S-Down>",  "<C-o>vj<C-g>", { desc = "Select line down" })
-map("i", "<S-Home>",  "<C-o>v0<C-g>", { desc = "Select to start of line" })
-map("i", "<S-End>",   "<C-o>v$<C-g>", { desc = "Select to end of line" })
+map("i", "<S-Up>", "<C-o>vk<C-g>", { desc = "Select line up" })
+map("i", "<S-Down>", "<C-o>vj<C-g>", { desc = "Select line down" })
+map("i", "<S-Home>", "<C-o>v0<C-g>", { desc = "Select to start of line" })
+map("i", "<S-End>", "<C-o>v$<C-g>", { desc = "Select to end of line" })
 
 -- Word motion in insert mode. <C-Left>/<C-Right> on Linux/Windows;
 -- Ghostty translates Cmd+arrow into the same CSI sequences on macOS.
 -- <Cmd>...<CR> stays in insert mode (no InsertLeave/Enter cycle), so
 -- completion plugins don't re-trigger on the cursor move.
-map("i", "<C-Left>",    "<Cmd>normal! b<CR>", { desc = "Move word left" })
-map("i", "<C-Right>",   "<Cmd>normal! w<CR>", { desc = "Move word right" })
+map("i", "<C-Left>", "<Cmd>normal! b<CR>", { desc = "Move word left" })
+map("i", "<C-Right>", "<Cmd>normal! w<CR>", { desc = "Move word right" })
 -- Same word motion in normal & visual modes.
-map({ "n", "x" }, "<C-Left>",  "b", { desc = "Move word left" })
+map({ "n", "x" }, "<C-Left>", "b", { desc = "Move word left" })
 map({ "n", "x" }, "<C-Right>", "w", { desc = "Move word right" })
 -- Word selection: enter Visual, extend by word, then toggle to Select
 -- mode so typing replaces the selection.
-map("i", "<C-S-Left>",  "<C-o>vb<C-g>", { desc = "Select word left" })
+map("i", "<C-S-Left>", "<C-o>vb<C-g>", { desc = "Select word left" })
 map("i", "<C-S-Right>", "<C-o>ve<C-g>", { desc = "Select word right" })
 
 -- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C
@@ -152,8 +173,8 @@ map("i", "<C-S-Right>", "<C-o>ve<C-g>", { desc = "Select word right" })
 -- The "my ... `y" pattern marks the cursor before yank and restores
 -- after, so the cursor stays put instead of jumping to the start of
 -- the selection (Vim's default behavior).
-map("n", "<C-c>", 'my"+yy`y',  { desc = "Copy line to clipboard" })
-map("x", "<C-c>", 'my"+y`y',   { desc = "Copy selection to clipboard" })
+map("n", "<C-c>", 'my"+yy`y', { desc = "Copy line to clipboard" })
+map("x", "<C-c>", 'my"+y`y', { desc = "Copy selection to clipboard" })
 -- In Select mode every printable character would *replace* the
 -- selection, so toggle to Visual first via <C-g>, then yank.
 map("s", "<C-c>", '<C-g>my"+y`y', { desc = "Copy selection to clipboard" })
@@ -166,35 +187,46 @@ map("n", "<CR>", "i", { desc = "Enter insert mode" })
 
 -- Ctrl+Z: undo (overrides nvim's default suspend behavior).
 map({ "n", "x", "s" }, "<C-z>", "<Cmd>undo<CR>", { desc = "Undo" })
-map("i",                "<C-z>", "<Cmd>undo<CR>", { desc = "Undo" })
+map("i", "<C-z>", "<Cmd>undo<CR>", { desc = "Undo" })
 
 -- Ctrl+V: paste from clipboard register. Bypasses ghostty/tmux text
 -- input so multi-line pastes preserve their newlines. Loses the default
 -- visual-block-mode binding in normal mode; use <C-q> instead if needed.
-map("n", "<C-v>", '"+p',       { desc = "Paste from clipboard" })
-map("i", "<C-v>", "<C-r>+",    { desc = "Paste from clipboard" })
-map("x", "<C-v>", '"+p',       { desc = "Paste over selection" })
-map("s", "<C-v>", '<C-g>"+p',  { desc = "Paste over selection" })
+map("n", "<C-v>", '"+p', { desc = "Paste from clipboard" })
+map("i", "<C-v>", "<C-r>+", { desc = "Paste from clipboard" })
+map("x", "<C-v>", '"+p', { desc = "Paste over selection" })
+map("s", "<C-v>", '<C-g>"+p', { desc = "Paste over selection" })
 
 -- Ctrl+X: cut to clipboard. With no selection, cuts the current line.
-map("n", "<C-x>", '"+dd',                       { desc = "Cut line to clipboard" })
-map("x", "<C-x>", '"+d',                        { desc = "Cut selection to clipboard" })
-map("s", "<C-x>", '<C-g>"+d',                   { desc = "Cut selection to clipboard" })
-map("i", "<C-x>", '<Cmd>normal! "+dd<CR>',      { desc = "Cut line to clipboard" })
+map("n", "<C-x>", '"+dd', { desc = "Cut line to clipboard" })
+map("x", "<C-x>", '"+d', { desc = "Cut selection to clipboard" })
+map("s", "<C-x>", '<C-g>"+d', { desc = "Cut selection to clipboard" })
+map("i", "<C-x>", '<Cmd>normal! "+dd<CR>', { desc = "Cut line to clipboard" })
 
 -- Ctrl+Shift+F: global text search (grep across project).
 -- F1: global file search (fuzzy find files in project).
 -- F3: search open buffers.
 -- F12: go to definition (LSP).
-local function grep()       require("snacks").picker.grep()             end
-local function files()      require("snacks").picker.files()            end
-local function buffers()    require("snacks").picker.buffers()          end
-local function definition() require("snacks").picker.lsp_definitions() end
-map({ "n", "i", "v", "s" }, "<C-S-f>", grep,       { desc = "Search across files (grep)" })
-map({ "n", "i", "v", "s" }, "<F1>",    files,      { desc = "Find files in project" })
-map({ "n", "i", "v", "s" }, "<F3>",    buffers,    { desc = "Search open buffers" })
-map({ "n", "i", "v", "s" }, "<F12>",   definition, { desc = "Go to definition" })
-map({ "n", "i", "v", "s" }, "<C-CR>",  definition, { desc = "Go to definition" })
--- Fallback: bind the raw CSI-u sequence for Ctrl+Enter in case the
--- terminal stack delivers it without translating to <C-CR>.
-map({ "n", "i", "v", "s" }, "<Esc>[13;5u", definition, { desc = "Go to definition" })
+local function grep()
+  require("snacks").picker.grep()
+end
+local function files()
+  require("snacks").picker.files()
+end
+local function buffers()
+  require("snacks").picker.buffers()
+end
+local function definition()
+  require("snacks").picker.lsp_definitions()
+end
+map({ "n", "i", "v", "s" }, "<C-S-f>", grep, { desc = "Search across files (grep)" })
+map({ "n", "i", "v", "s" }, "<F1>", files, { desc = "Find files in project" })
+map({ "n", "i", "v", "s" }, "<F3>", buffers, { desc = "Search open buffers" })
+map({ "n", "i", "v", "s" }, "<F12>", definition, { desc = "Go to definition" })
+map({ "n", "i", "v", "s" }, "<C-CR>", definition, { desc = "Go to definition" })
+-- NOTE: do NOT add a fallback `<Esc>[13;5u` mapping here. The tmux
+-- config sets `extended-keys on` + `terminal-features 'xterm*:extkeys'`,
+-- so Neovim already resolves the CSI-u sequence to <C-CR> natively. A
+-- raw `<Esc>[...` mapping makes every plain <Esc> wait `timeoutlen`
+-- (~300ms) for the rest of the sequence — felt as a sluggish exit
+-- from insert mode.

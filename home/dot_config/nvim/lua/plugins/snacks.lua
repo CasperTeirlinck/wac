@@ -12,9 +12,66 @@ return {
       opts.picker.sources.explorer or {},
       {
         hidden = true,
-        -- Default opening width; keep in sync with git-sidebar.lua's
-        -- LEFT_SIDEBAR_WIDTH (used to resize on re-layout).
-        layout = { layout = { width = 35 } },
+        -- Custom layout: list first (so the file tree starts at the
+        -- very top of the sidebar), input pinned to the bottom as a
+        -- single borderless row. We can't use snacks's `auto_hide` /
+        -- layout-`hidden` to remove the input — they call win:close()
+        -- on it, which nils its scratch buf, and then explorer/actions
+        -- crashes the next time it calls input:set() (e.g. on
+        -- confirm). Keeping the input alive at the bottom dodges that
+        -- entirely, and the list still gets row 0.
+        -- Keep width in sync with git-sidebar.lua's LEFT_SIDEBAR_WIDTH.
+        layout = {
+          preset = "sidebar",
+          preview = false,
+          layout = {
+            box = "vertical",
+            -- Must set position explicitly: snacks's preset resolver
+            -- (config/init.lua:225) short-circuits the preset merge as
+            -- soon as we supply our own `layout[1]`, so position="left"
+            -- from the sidebar preset never reaches us — without this
+            -- the explorer opens as a centred float instead of a left
+            -- split, and the editor + buffer tabs shuffle around it.
+            position = "left",
+            width = 35,
+            { win = "list",  border = "none" },
+            { win = "input", height = 1, border = "none" },
+          },
+        },
+        -- A named action goes through snacks's action resolver, which
+        -- captures the picker via closure. Function-form key handlers
+        -- receive `self = the snacks.win` (no picker reference), so a
+        -- raw inline function crashes inside toggle_focus.
+        actions = {
+          exit_search = function(picker)
+            if vim.fn.mode():sub(1, 1) == "i" then vim.cmd.stopinsert() end
+            -- Clear the filter so the list snaps back to the full tree
+            -- instead of staying narrowed to the previous search term.
+            if picker.input and picker.input.set then
+              pcall(picker.input.set, picker.input, "", "")
+            end
+            require("snacks.picker.actions").toggle_focus(picker)
+          end,
+        },
+        win = {
+          input = {
+            keys = {
+              -- <Esc> = exit search: stopinsert + toggle_focus back to
+              -- the list. We explicitly do NOT call cancel/close — the
+              -- sidebar is pinned and <Esc> must never destroy it.
+              ["<Esc>"] = { "exit_search", mode = { "i", "n" } },
+            },
+          },
+          list = {
+            keys = {
+              -- <Esc> defaults to `cancel` which closes the picker;
+              -- we want it to be inert in the list (just stay in
+              -- normal mode here). Don't reuse exit_search — that one
+              -- calls toggle_focus, which would flip you to the input.
+              ["<Esc>"] = { function() end, mode = { "n" } },
+            },
+          },
+        },
         -- Render the most-recently-active file in bold.
         -- Uses the buffer-info `lastused` timestamp so diff scratch
         -- buffers (which aren't `buflisted`) don't override the bold.

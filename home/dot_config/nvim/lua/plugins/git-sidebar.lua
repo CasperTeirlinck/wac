@@ -350,16 +350,44 @@ return {
           preview = false,
           focus = false,
           show_empty = true,
+          -- Custom layout: list on top (so the git tree starts at row 0
+          -- of the sidebar), input pinned at the bottom as a single
+          -- borderless row. We can't use auto_hide / layout-hidden to
+          -- drop the input — they close its scratch window, and the
+          -- explorer-derived picker actions crash the next time
+          -- input:set() runs. Keeping the input alive at the bottom is
+          -- the simplest workaround that also gives us list at row 0.
           layout = {
             preset = "sidebar",
             preview = false,
-            layout = { position = "right", width = RIGHT_SIDEBAR_WIDTH },
+            layout = {
+              box = "vertical",
+              position = "right",
+              width = RIGHT_SIDEBAR_WIDTH,
+              { win = "list",  border = "none" },
+              { win = "input", height = 1, border = "none" },
+            },
           },
           confirm = open_file,
           -- Picker-local actions and keybinds:
           --   r = refresh (manual cache-invalidating reload)
           --   s = stage/unstage current file then refresh
           actions = {
+            -- A named action goes through snacks's action resolver, which
+            -- captures the picker via closure. Function-form key handlers
+            -- receive `self = the snacks.win`, so a plain inline function
+            -- crashes inside toggle_focus because the win has no .input.
+            exit_search = function(picker)
+              if vim.fn.mode():sub(1, 1) == "i" then vim.cmd.stopinsert() end
+              -- Clear the search term so the list goes back to showing
+              -- everything. Without this, the filter stays active and
+              -- the list keeps showing only matched items even though
+              -- the input row at the bottom is visually empty.
+              if picker.input and picker.input.set then
+                pcall(picker.input.set, picker.input, "", "")
+              end
+              require("snacks.picker.actions").toggle_focus(picker)
+            end,
             git_tree_refresh = function(picker)
               invalidate_status_cache()
               picker:find()
@@ -390,12 +418,21 @@ return {
               keys = {
                 ["s"] = "git_tree_stage",
                 ["r"] = "git_tree_refresh",
+                -- <Esc> defaults to `cancel` which closes the picker;
+                -- we want it inert in the list (stay in normal mode).
+                -- Don't reuse exit_search — that calls toggle_focus
+                -- which would flip you to the input.
+                ["<Esc>"] = { function() end, mode = { "n" } },
               },
             },
             input = {
               keys = {
                 ["s"] = { "git_tree_stage", mode = { "n" } },
                 ["r"] = { "git_tree_refresh", mode = { "n" } },
+                -- See exit_search above for the stopinsert dance and
+                -- why we route through a named action instead of an
+                -- inline function.
+                ["<Esc>"] = { "exit_search", mode = { "i", "n" } },
               },
             },
           },
@@ -426,21 +463,43 @@ return {
         end,
       })
 
-      -- Skip insert mode when entering the git_tree picker's input window.
-      vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+      -- The input row sits at the bottom of the sidebar; when you nav
+      -- into the sidebar with <C-l>/smart-splits from the main editor,
+      -- vim picks the window your cursor row lines up with — which is
+      -- often the input. Bounce focus from input -> list whenever the
+      -- previous window was NOT this picker's own list (i.e. you came
+      -- from outside via window nav, not from `/`). When the input
+      -- already has a search term, leave focus alone so an active
+      -- search isn't disrupted.
+      vim.api.nvim_create_autocmd("WinEnter", {
         callback = function()
           if vim.bo.filetype ~= "snacks_picker_input" then return end
           local current_win = vim.api.nvim_get_current_win()
+          local prev_win = vim.fn.win_getid(vim.fn.winnr("#"))
           local ok, snacks = pcall(require, "snacks")
           if not ok or not snacks.picker then return end
           for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
             if p.input and p.input.win and p.input.win.win == current_win then
-              vim.schedule(function() vim.cmd("stopinsert") end)
+              if p.list and p.list.win and p.list.win.win == prev_win then
+                return -- came via `/` (toggle_focus from list)
+              end
+              local buf = p.input.win.buf
+              if buf and vim.api.nvim_buf_is_valid(buf) then
+                local content = (vim.api.nvim_buf_get_lines(buf, 0, -1, false)[1] or "")
+                if content ~= "" then return end -- preserve active search
+              end
+              if p.list and p.list.win and p.list.win.win
+                  and vim.api.nvim_win_is_valid(p.list.win.win) then
+                vim.schedule(function()
+                  pcall(vim.api.nvim_set_current_win, p.list.win.win)
+                end)
+              end
               return
             end
           end
         end,
       })
+
 
       -- Debounced refresh of the git_tree picker on events that may
       -- have changed git state.

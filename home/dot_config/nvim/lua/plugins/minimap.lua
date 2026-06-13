@@ -57,8 +57,22 @@ return {
         for _, p in ipairs(pickers) do
           local sp = p.layout and p.layout.screenpos
           if sp and sp.col and sp.col > 1 then
-            -- screenpos is 1-indexed; nvim_win_set_config col is 0-indexed.
-            return sp.col - 1
+            -- screenpos.col is 1-indexed; nvim_win_set_config col is
+            -- 0-indexed. With anchor=NE, the returned col becomes the
+            -- minimap's right edge.
+            --
+            -- Layout in 0-indexed screen cols, with S = sp.col - 1:
+            --   ... | editor | sep(S-1) | sidebar (S, S+1, ...)
+            --
+            -- If we returned S, the minimap's right edge sat exactly at
+            -- the sidebar's first content col, so cols S-9..S got
+            -- covered — including the WinSeparator at S-1. The result
+            -- was an invisible separator between the editor and the git
+            -- sidebar.
+            -- Return S - 2 instead: the minimap's right edge ends one
+            -- col to the left of the separator, leaving the separator
+            -- (at S-1) visible between the minimap and the sidebar.
+            return sp.col - 1 - 2
           end
         end
         return nil
