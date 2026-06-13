@@ -48,6 +48,7 @@ in {
     pkgs.eyedropper
     pkgs.gh
     pkgs.claude-code
+    pkgs.imagemagick # SVG/PDF → raster for snacks.image previews in nvim
     (pkgs.nerd-fonts.fira-code)
 
     # # You can also create simple shell scripts directly inside your

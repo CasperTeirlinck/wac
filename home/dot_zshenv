@@ -1,1 +1,8 @@
 alias assume="source assume"
+
+# Force snacks.image (in nvim) to detect Ghostty when wrapped in tmux. The
+# inner tmux's client_termname is `screen-256color` (inherited from the outer
+# tmux's `default-terminal`), so snacks's normal detection fails for any nvim
+# launched from inner tmux. Setting this in zshenv ensures the override
+# propagates through every nested shell/tmux/nvim invocation.
+[ -n "$GHOSTTY_RESOURCES_DIR" ] && export SNACKS_GHOSTTY=1

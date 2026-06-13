@@ -2,6 +2,32 @@ return {
   "folke/snacks.nvim",
   opts = function(_, opts)
     opts.dashboard = vim.tbl_deep_extend("force", opts.dashboard or {}, { enabled = false })
+    -- Inline image previews via Kitty graphics protocol (Ghostty supports it
+    -- natively). PNG/JPG/GIF render with no extra deps; SVG/PDF/AVIF need
+    -- `imagemagick` on PATH (installed via Homebrew on Darwin, nixpkgs on
+    -- Linux). Opens image files full-pane and also drives snacks.picker
+    -- previews + inline markdown image rendering.
+    --
+    -- Known quirk: on buffer-switch between two open images under tmux, the
+    -- previously-shown image vanishes and "Identify loading…" reappears.
+    -- Workaround: `:e!` to re-render. Tried 3rd/image.nvim as an
+    -- alternative; its hijack mode interacts badly with the snacks.explorer
+    -- sidebar layout, so we're back here.
+    opts.image = vim.tbl_deep_extend("force", opts.image or {}, { enabled = true })
+    -- Snacks's image placement writes empty lines into the buffer during
+    -- progress/render passes and never resets `modified` — so the buffer
+    -- shows a phantom `[+]` flag after opening an image. Re-assert
+    -- `modified = false` whenever it gets set on an image-filetype buffer.
+    vim.api.nvim_create_autocmd("FileType", {
+      pattern = "image",
+      group = vim.api.nvim_create_augroup("snacks_image_unmodified", { clear = true }),
+      callback = function(ev)
+        vim.api.nvim_create_autocmd("BufModifiedSet", {
+          buffer = ev.buf,
+          callback = function() vim.bo[ev.buf].modified = false end,
+        })
+      end,
+    })
     opts.picker = opts.picker or {}
     opts.picker.sources = opts.picker.sources or {}
     opts.picker.sources.notifications = vim.tbl_deep_extend("force",

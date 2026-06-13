@@ -67,10 +67,10 @@ in {
         "fd"
         "zellij"
         "shellcheck"
+        "imagemagick" # SVG/PDF → raster for snacks.image previews in nvim
         "beads"
         "dolt"
         "argocd"
-        "darksworm/homebrew-tap/argonaut"
         # system utils
         # "scroll-reverser"
     ];

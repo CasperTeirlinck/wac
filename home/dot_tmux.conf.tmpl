@@ -29,6 +29,18 @@ bind-key -n C-Enter send-keys Escape "[13;5u"
 set -g default-terminal "screen-256color"
 set-option -sa terminal-overrides ",xterm*:Tc"
 
+# OSC 8 hyperlink passthrough — lets programs (gh, eza, lazygit, …) emit
+# clickable links that survive tmux and reach Ghostty's URL handler.
+# Inside tmux mouse mode, hold Shift while clicking to bypass tmux's mouse
+# capture (Cmd+Shift+click opens the link on macOS).
+set -as terminal-features ',*:hyperlinks'
+
+# Kitty graphics protocol passthrough — lets nvim (snacks.image) render
+# PNG/JPG/SVG/PDF inline by sending the escapes straight to Ghostty.
+# Without this, tmux swallows the graphics bytes and snacks reports
+# "terminal does not support kitty graphics".
+set -g allow-passthrough on
+
 # Status bar
 set-option -g status-position bottom
 set-option -g status-justify left
