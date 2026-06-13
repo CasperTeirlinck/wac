@@ -40,6 +40,12 @@ keybind = cmd+shift+f=csi:102;6u
 # Forward Cmd+X as Ctrl+X so nvim's <C-x> = cut mapping fires.
 keybind = cmd+x=text:\x18
 
+# Forward Cmd+D as Ctrl+D so nvim's multicursor (<C-d>) fires. Overrides
+# Ghostty's default cmd+d=new_split:right. Needed on keyboards where
+# Karabiner isn't swapping Cmd↔Ctrl (built-in Mac keyboard).
+keybind = cmd+d=text:\x04
+keybind = cmd+shift+d=csi:100;6u
+
 # Send the CSI-u sequence for Ctrl+Enter so nvim's <C-CR> mapping fires.
 # (By default terminals deliver Ctrl+Enter as a plain CR.)
 keybind = ctrl+enter=csi:13;5u
