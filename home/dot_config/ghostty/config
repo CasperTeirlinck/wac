@@ -7,6 +7,8 @@ quick-terminal-animation-duration = 0
 
 # Remap Cmd-a to Ctrl-a for tmux prefix
 keybind = cmd+a=text:\x01
+# Remap Cmd-e to Ctrl-e for the nested inner tmux prefix (~/.tmux.inner.conf).
+keybind = cmd+e=text:\x05
 
 # Send Ctrl+Arrow CSI sequences for word motion. Karabiner remaps
 # Cmd+arrow → Option+arrow globally, so Ghostty actually receives Option+arrow
@@ -41,3 +43,9 @@ keybind = cmd+x=text:\x18
 # Send the CSI-u sequence for Ctrl+Enter so nvim's <C-CR> mapping fires.
 # (By default terminals deliver Ctrl+Enter as a plain CR.)
 keybind = ctrl+enter=csi:13;5u
+
+# Allow OSC52 clipboard writes without prompting. tmux (`set-clipboard on`)
+# uses OSC52 to push mouse-drag selections into the macOS clipboard, including
+# from nested inner tmux sessions. Default is `ask`, which silently fails if
+# the prompt is dismissed.
+clipboard-write = allow

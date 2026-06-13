@@ -14,37 +14,45 @@ TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SE
 # See man tmux.conf for additional formatting options for the status line.
 # The `format regular` and `format inverse` functions are provided as conveinences
 
+# Vim-statusline (lualine on onedark) style — only the trailing right-sided
+# rounded cap on each tab (no leading caps → no pill shape). The transition
+# INTO the active tab comes from the *preceding inactive tab's* trailing cap,
+# coloured so its bg matches the active tab's bg (default → #3b3f4c via the
+# curve). This requires knowing whether the next tab is the active one; we
+# read `@active_window_index` (set by a session-window-changed / client-
+# attached hook in the tmux configs) and compare to `window_index + 1`.
+#
+#   active   → bg3 (#3b3f4c) with light fg (#abb2bf), trailing `)` cap that
+#              curves the section bg out into the default bg.
+#   inactive (when next tab is active) → trailing `)` cap fg=default,
+#              bg=#3b3f4c: LEFT half default (continues inactive), RIGHT half
+#              #3b3f4c (continues into active). Smooth bridge.
+#   inactive (otherwise) → trailing thin `)` cap fg=#5c6370, bg=default.
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_CURRENT ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_CURRENT=(
-		# "#[$(format inverse)]" \
-		# "$TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR" \
-		# " #I#F " \
-		# "$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN" \
-		"#[$(format regular)]" \
-		"$TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR" \
-		"#[$(format inverse)]" \
+		"#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]" \
 		" #W " \
-		"#[$(format regular)]" \
-		"$TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR" \
-		# "#[$(format regular)]" \
-		# "$TMUX_POWERLINE_DEFAULT_LEFTSIDE_SEPARATOR"
+		"#[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]" \
+		"$TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD" \
 	)
 fi
 
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_STYLE ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_STYLE=(
-		"$(format regular)"
+		"fg=#5c6370,bg=default,nobold,noitalics,nounderscore"
 	)
 fi
 
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_FORMAT ]; then
+	# Inside the conditional body, every literal comma must be doubled (`,,`)
+	# so tmux's format parser doesn't read it as the then/else separator.
+	# That includes the commas inside the `#[...]` style blocks.
 	TMUX_POWERLINE_WINDOW_STATUS_FORMAT=(
-		"#[$(format regular)]" \
-		# "  #I#{?window_flags,#F, } " \
-		# "$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN" \
-		"$TMUX_POWERLINE_SEPARATOR_LEFT_THIN" \
-		" #W "
-		"$TMUX_POWERLINE_SEPARATOR_RIGHT_THIN" \
+		"#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]" \
+		" #W " \
+		"#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}}," \
+		"#[fg=#21252b,,bg=#3b3f4c,,nobold,,noitalics,,nounderscore]${TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD}," \
+		"#[fg=#5c6370,,bg=default,,nobold,,noitalics,,nounderscore]${TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}}" \
 	)
 fi
 
@@ -79,7 +87,12 @@ if [ -z $TMUX_POWERLINE_LEFT_STATUS_SEGMENTS ]; then
 	TMUX_POWERLINE_LEFT_STATUS_SEGMENTS=(
 		# "tmux_session_info 148 234" \
 		# "tmux_session_info 4 234" \
-		"my_mode_indicator 4 234" \
+		# Prefix dot moved to the right segments below.
+		# "my_mode_indicator default default ${TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD} default default left_disable separator_disable" \
+		# Session-name tab on the far left, mirrors the active-window styling
+		# (onedark bg3 + light fg) so the visual hierarchy is left→right:
+		#   session ▶ inactive | inactive | [active ▶] ...
+		"tmux_session_info #98c379 #21252b" \
 		# "hostname 33 0" \
 		#"ifstat 30 255" \
 		#"ifstat_sys 30 255" \
@@ -103,7 +116,8 @@ if [ -z $TMUX_POWERLINE_RIGHT_STATUS_SEGMENTS ]; then
 		#"cpu 240 136" \
 		# "load 237 167" \
 		#"tmux_mem_cpu_load 234 136" \
-		"battery 2 234" \
+		# "battery 2 234" \
+		"my_mode_indicator default default ${TMUX_POWERLINE_SEPARATOR_LEFT_BOLD} default default left_disable separator_disable" \
 		# "weather 37 255" \
 		#"rainbarf 0 ${TMUX_POWERLINE_DEFAULT_FOREGROUND_COLOR}" \
 		#"xkb_layout 125 117" \

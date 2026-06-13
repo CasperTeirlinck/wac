@@ -2,6 +2,11 @@
 # See: https://github.com/christoomey/vim-tmux-navigator
 is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|l?n?vim?x?)(diff)?$'"
+# Same idea for an inner tmux client (launched via `tmi` on the `inner` socket)
+# running in the active pane — match a foreground process whose comm is exactly
+# `tmux`. When matched, the C-a Arrow bindings forward to inner as C-e Arrow.
+is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
+    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?tmux$'"
     
 set -s escape-time 1
 
@@ -26,6 +31,18 @@ set-option -sa terminal-overrides ",xterm*:Tc"
 
 # Status bar
 set-option -g status-position bottom
+set-option -g status-justify left
+
+# Track the active window's index in @active_window_index so the powerline
+# theme can render a vim/lualine-style transition cap on the inactive tab that
+# precedes the active one (its bg becomes the active tab's bg, bridging the
+# colour change smoothly). `set-option` doesn't expand format strings in its
+# value, so we round-trip through `run-shell` which does — the resulting
+# command stores the *expanded* index, not the literal `#{window_index}`.
+set -g @active_window_index 1
+set-hook -g session-window-changed 'run-shell -b "tmux set -g @active_window_index #{window_index}"'
+set-hook -g client-attached        'run-shell -b "tmux set -g @active_window_index #{window_index}"'
+set-hook -g after-select-window    'run-shell -b "tmux set -g @active_window_index #{window_index}"'
 
 # Scroll length
 set-option -g history-limit 10000
@@ -38,6 +55,17 @@ bind-key -T copy-mode-vi WheelUpPane send-keys -X -N 1 scroll-up
 bind-key -T copy-mode-vi WheelDownPane send-keys -X -N 1 scroll-down
 bind-key -T copy-mode WheelUpPane send-keys -X -N 1 scroll-up
 bind-key -T copy-mode WheelDownPane send-keys -X -N 1 scroll-down
+
+# Clipboard: mouse-drag selects → release copies to system clipboard via OSC52.
+# Ghostty natively accepts OSC52; with `set-clipboard on` the outer tmux also
+# forwards OSC52 emitted by a nested inner tmux up to Ghostty.
+# NOTE: the feature pattern must match `default-terminal` (screen-256color),
+# not Ghostty's outer $TERM — tmux uses its own TERM when adding the `Ms`
+# terminfo cap that enables OSC52 emission.
+set -g set-clipboard on
+set -as terminal-features 'screen*:clipboard'
+bind-key -T copy-mode    MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
 
 # Prefix
 {{$prefix := ""}}
@@ -71,17 +99,20 @@ set-option -g status-interval 5
 set-option -g automatic-rename on
 set-window-option -g window-status-style fg=white,bg=default
 set-window-option -g window-status-current-style fg=#000000,bg=default
-set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?window_zoomed_flag, ,}#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
+set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
 
 # Moving between panes
 unbind Up
 unbind Down
 unbind Left
 unbind Right
-bind-key Up if-shell "$is_vim" "send-keys {{$prefix}} Up" "select-pane -U"
-bind-key Down if-shell "$is_vim" "send-keys {{$prefix}} Down" "select-pane -D"
-bind-key Left if-shell "$is_vim" "send-keys {{$prefix}} Left" "select-pane -L"
-bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "select-pane -R"
+# Order: vim → inner tmux → outer select-pane. Vim gets the prefix+arrow it
+# expects ({{$prefix}}); an inner tmux gets C-e+arrow (its own prefix) so its
+# matching bindings then run select-pane inside the inner server.
+bind-key Up    if-shell "$is_vim" "send-keys {{$prefix}} Up"    "if-shell \"$is_inner_tmux\" \"send-keys C-e Up\"    \"select-pane -U\""
+bind-key Down  if-shell "$is_vim" "send-keys {{$prefix}} Down"  "if-shell \"$is_inner_tmux\" \"send-keys C-e Down\"  \"select-pane -D\""
+bind-key Left  if-shell "$is_vim" "send-keys {{$prefix}} Left"  "if-shell \"$is_inner_tmux\" \"send-keys C-e Left\"  \"select-pane -L\""
+bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_inner_tmux\" \"send-keys C-e Right\" \"select-pane -R\""
 
 # Moving panes
 unbind C-Left
@@ -95,7 +126,10 @@ bind-key / command-prompt -p "send pane to window:" "join-pane -v -t '%%'"
 # Deleting panes
 unbind x
 # bind-key x kill-pane # no confirm-before because cannot customize (yet) the confirm key
-bind-key x if-shell "$is_vim" "send-keys {{$prefix}} x" "kill-pane"
+# Same vim → inner-tmux → outer fallthrough as the Arrow chain: in an
+# inner-tmux pane, forward C-e x so inner's default `prefix x` (confirm +
+# kill-pane) closes the inner pane instead of the outer one wrapping it.
+bind-key x if-shell "$is_vim" "send-keys {{$prefix}} x" "if-shell \"$is_inner_tmux\" \"send-keys C-e x\" \"kill-pane\""
 
 # Moving between windows
 unbind ,
@@ -120,10 +154,13 @@ unbind S-Up
 unbind S-Down
 unbind S-Left
 unbind S-Right
-bind -r S-Up resize-pane -U 5
-bind -r S-Down resize-pane -D 5
-bind -r S-Left resize-pane -L 5
-bind -r S-Right resize-pane -R 5
+# Same vim-aware chain as the nav bindings: if the active pane runs vim,
+# forward the chord so smart-splits in nvim can resize the nvim window
+# (and fall through to tmux's resize-pane when nvim hits the edge).
+bind -r S-Up    if-shell "$is_vim" "send-keys {{$prefix}} S-Up"    "resize-pane -U 5"
+bind -r S-Down  if-shell "$is_vim" "send-keys {{$prefix}} S-Down"  "resize-pane -D 5"
+bind -r S-Left  if-shell "$is_vim" "send-keys {{$prefix}} S-Left"  "resize-pane -L 5"
+bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "resize-pane -R 5"
 
 unbind m
 bind -r m resize-pane -Z
@@ -134,11 +171,16 @@ bind -r m resize-pane -Z
 # Replaces the default clock-mode binding on `t`.
 unbind t
 bind-key t command-prompt -p "Rename window:" "rename-window '%%' ; setw automatic-rename off"
+bind-key T command-prompt -p "Rename window (styled):" "rename-window '#[fg=green,bold]%%#[fg=default,nobold]' ; setw automatic-rename off"
 
 # Pane border colors
 set -g pane-active-border-style fg=white
 set -g pane-border-style fg=color236
 set -g pane-border-status off
+
+# Highlight color for selection in tree-mode (prefix-w, prefix-s) and
+# copy-mode: white-ish bar with dark fg, replacing the harsh default yellow.
+set -g mode-style 'fg=#21252b,bg=#abb2bf,bold'
 
 # Config
 unbind r
@@ -150,7 +192,7 @@ set -g @plugin 'roosta/tmux-fuzzback'
 set -g @plugin 'tmux-plugins/tmux-resurrect'
 set -g @plugin 'tmux-plugins/tmux-continuum'
 
-set -g @fuzzback-bind ?
+set -g @fuzzback-bind /
 set -g @fuzzback-popup 1
 set -g @fuzzback-fzf-colors 'pointer:2,prompt:4,info:242,gutter:-1'
 
@@ -161,3 +203,30 @@ set -g @plugin 'erikw/tmux-powerline'
 
 # Plugin manager (keep at the bottom)
 run '~/.tmux/plugins/tpm/tpm'
+
+# Cheatsheet: prefix-? opens a centered popup listing every prefix binding.
+# Placed AFTER tpm so it wins over any plugin (e.g. fuzzback) that tries to
+# claim `?` during plugin init. Press q (or Esc) inside `less` to close.
+bind-key ? display-popup -E -h 80% -w 80% "tmux list-keys -T prefix | sort | less -R"
+
+# Override window-status formats AFTER the powerline plugin has set its own
+# (via tpm `run` above). powerline points window-status-format at
+# `#(powerline.sh window-format)`, whose stdout is inserted *literally* into
+# the status string by tmux — it isn't recursively re-evaluated, so any
+# `#{?...}` conditional inside the script output never fires. Setting the
+# format directly here lets the conditional run at render time, which is
+# what drives the smooth bridge cap on the inactive tab right before the
+# active one.
+set -g @bridge_cap '#[fg=#21252b,bg=#3b3f4c,nobold,noitalics,nounderscore]'
+set -g @thin_cap   '#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]'
+set -wg window-status-format '#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#{@bridge_cap},#{@thin_cap}}'
+set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
+
+
+# Override status-left AFTER the powerline plugin so the session-name's
+# trailing cap is conditional: when the first tab is the active one, the
+# cap bg becomes the active tab's bg (#3b3f4c) so the colour flows into
+# it smoothly; otherwise it rounds off into default like before.
+set -g @sess_cap_active   '#[fg=#98c379,bg=#3b3f4c,nobold,noitalics,nounderscore]'
+set -g @sess_cap_inactive '#[fg=#98c379,bg=default,nobold,noitalics,nounderscore]'
+set -g status-left '#[fg=#21252b,bg=#98c379] #S #{?#{==:#{@active_window_index},1},#{@sess_cap_active},#{@sess_cap_inactive}}#[default]'

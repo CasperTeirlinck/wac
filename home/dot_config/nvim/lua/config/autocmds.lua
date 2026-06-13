@@ -23,7 +23,7 @@
 -- the focused scope. Overrides snacks's defaults (which inherit from
 -- the colorscheme and end up red on onedark).
 local function set_indent_hls()
-  vim.api.nvim_set_hl(0, "SnacksIndent",      { fg = "#2c313a" })
+  vim.api.nvim_set_hl(0, "SnacksIndent", { fg = "#2c313a" })
   vim.api.nvim_set_hl(0, "SnacksIndentScope", { fg = "#4b5263" })
   vim.api.nvim_set_hl(0, "SnacksIndentChunk", { fg = "#4b5263" })
 end
@@ -37,6 +37,7 @@ vim.api.nvim_create_autocmd("ColorScheme", { callback = set_indent_hls })
 -- defining bold variants now picks up empty/default attrs).
 local function set_explorer_hls()
   vim.api.nvim_set_hl(0, "SnacksPickerGitStatusUntracked", { fg = "#98c379" })
+  vim.api.nvim_set_hl(0, "SnacksPickerDirectory", { link = "SnacksPickerFile" })
 end
 set_explorer_hls()
 vim.api.nvim_create_autocmd("ColorScheme", { callback = set_explorer_hls })
@@ -45,10 +46,14 @@ vim.api.nvim_create_autocmd("ColorScheme", { callback = set_explorer_hls })
 -- Skip when entering a snacks picker (would reset its cursor to top).
 vim.api.nvim_create_autocmd("BufEnter", {
   callback = function()
-    if vim.bo.filetype:match("^snacks_picker") then return end
+    if vim.bo.filetype:match("^snacks_picker") then
+      return
+    end
     vim.schedule(function()
       local ok, snacks = pcall(require, "snacks")
-      if not ok or not snacks.picker then return end
+      if not ok or not snacks.picker then
+        return
+      end
       for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
         pcall(p.find, p, { refresh = true })
       end

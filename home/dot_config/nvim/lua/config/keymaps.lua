@@ -100,6 +100,22 @@ map({ "n", "i", "v" }, "<C-a><Down>",  nav("down"),  { desc = "Navigate down" })
 map({ "n", "i", "v" }, "<C-a><Up>",    nav("up"),    { desc = "Navigate up" })
 map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" })
 
+-- Pane resize: <C-a><S-Arrow> mirrors tmux's `prefix S-Arrow`. Uses
+-- smart-splits so it resizes the nvim window when there's a neighbour
+-- in that direction, and otherwise hands off to the multiplexer
+-- (resizes the surrounding tmux pane). The outer tmux forwards the
+-- chord here when the active pane runs vim — see the S-Arrow chain in
+-- dot_tmux.conf.tmpl.
+local function resize(dir)
+  return function()
+    pcall(function() require("smart-splits")["resize_" .. dir]() end)
+  end
+end
+map({ "n", "i", "v" }, "<C-a><S-Left>",  resize("left"),  { desc = "Resize left"  })
+map({ "n", "i", "v" }, "<C-a><S-Down>",  resize("down"),  { desc = "Resize down"  })
+map({ "n", "i", "v" }, "<C-a><S-Up>",    resize("up"),    { desc = "Resize up"    })
+map({ "n", "i", "v" }, "<C-a><S-Right>", resize("right"), { desc = "Resize right" })
+
 -- <C-a>[ / <C-a>]: cycle through bufferline buffers (mirrors tmux prefix
 -- window navigation, since `<C-a>` is also the tmux prefix).
 map({ "n", "i", "v" }, "<C-a>[", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })

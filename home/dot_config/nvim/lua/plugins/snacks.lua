@@ -12,6 +12,9 @@ return {
       opts.picker.sources.explorer or {},
       {
         hidden = true,
+        -- Default opening width; keep in sync with git-sidebar.lua's
+        -- LEFT_SIDEBAR_WIDTH (used to resize on re-layout).
+        layout = { layout = { width = 35 } },
         -- Render the most-recently-active file in bold.
         -- Uses the buffer-info `lastused` timestamp so diff scratch
         -- buffers (which aren't `buflisted`) don't override the bold.

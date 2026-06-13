@@ -22,7 +22,7 @@
 	# Note that events that force-refresh the status bar (such as window renaming) will ignore this.
 	export TMUX_POWERLINE_STATUS_INTERVAL="1"
 	# The location of the window list. Can be {"absolute-centre, centre, left, right"}.
-	export TMUX_POWERLINE_STATUS_JUSTIFICATION="centre"
+	export TMUX_POWERLINE_STATUS_JUSTIFICATION="left"
 
 	# The maximum length of the left status bar.
 	export TMUX_POWERLINE_STATUS_LEFT_LENGTH="60"
@@ -169,7 +169,7 @@
 # tmux_session_info.sh {
 	# Session info format to feed into the command: tmux display-message -p
 	# For example, if FORMAT is '[ #S ]', the command is: tmux display-message -p '[ #S ]'
-	export TMUX_POWERLINE_SEG_TMUX_SESSION_INFO_FORMAT="#S:#I.#P"
+	export TMUX_POWERLINE_SEG_TMUX_SESSION_INFO_FORMAT="#S"
 # }
 
 # utc_time.sh {

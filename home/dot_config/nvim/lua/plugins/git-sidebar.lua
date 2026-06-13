@@ -13,8 +13,9 @@ local function find_main_window()
   return nil
 end
 
-local LEFT_SIDEBAR_WIDTH = 40
-local RIGHT_SIDEBAR_WIDTH = 50
+-- Keep in sync with the explorer layout width in snacks.lua.
+local LEFT_SIDEBAR_WIDTH = 35
+local RIGHT_SIDEBAR_WIDTH = 35
 
 local function ensure_main_window()
   local existing = find_main_window()
@@ -274,6 +275,17 @@ local function leader_open_with_diff()
   open_with_diff(item)
 end
 
+local function leader_toggle()
+  local ok, snacks = pcall(require, "snacks")
+  if not ok or not snacks.picker then return end
+  local pickers = snacks.picker.get({ source = "git_tree" }) or {}
+  if #pickers > 0 then
+    for _, p in ipairs(pickers) do pcall(p.close, p) end
+  else
+    snacks.picker.git_tree()
+  end
+end
+
 local function leader_discard()
   local picker, item = current_picker_item()
   if not picker or not item or not item.file or item.dir then return end
@@ -354,12 +366,21 @@ return {
             end,
             git_tree_stage = function(picker)
               local Actions = require("snacks.picker.actions")
+              -- Capture cursor/top NOW: snacks's internal refresh (fired
+              -- by git_stage) consumes-and-clears the target before our
+              -- deferred find runs, so we have to re-force them after.
+              local saved_cursor = picker.list and picker.list.cursor or nil
+              local saved_top = picker.list and picker.list.top or nil
               Actions.git_stage(picker)
               -- snacks's git_stage runs git asynchronously and calls
               -- picker:refresh() when done. Invalidate our cache shortly
               -- after so the next refresh fetches fresh status.
               vim.defer_fn(function()
                 invalidate_status_cache()
+                if picker.list and picker.list.set_target and saved_cursor then
+                  pcall(picker.list.set_target, picker.list,
+                        saved_cursor, saved_top, { force = true })
+                end
                 pcall(picker.find, picker)
               end, 200)
             end,
@@ -381,6 +402,7 @@ return {
         })
     end,
     keys = {
+      { "<leader>gt", leader_toggle,         desc = "Git: toggle tree sidebar" },
       { "<leader>gs", leader_stage,          desc = "Git: stage/unstage current file" },
       { "<leader>gr", leader_refresh,        desc = "Git: refresh tree sidebar" },
       { "<leader>gd", leader_open_with_diff, desc = "Git: open file with diff vs HEAD" },
