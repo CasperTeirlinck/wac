@@ -14,6 +14,39 @@ return {
     -- alternative; its hijack mode interacts badly with the snacks.explorer
     -- sidebar layout, so we're back here.
     opts.image = vim.tbl_deep_extend("force", opts.image or {}, { enabled = true })
+    -- Suppress `/` search highlighting in snacks picker windows (esp. the
+    -- explorer sidebar). Without this, hlsearch lights up matching
+    -- filenames in the tree whenever you `/` search inside a file buffer.
+    --
+    -- Approach: create a per-window highlight namespace where Search /
+    -- CurSearch / IncSearch are empty, and attach it via
+    -- `nvim_win_set_hl_ns` to any window with a snacks picker buffer.
+    -- This bypasses `winhighlight` (which snacks keeps rewriting) and
+    -- works even for windows that already exist when this code runs.
+    local ns = vim.api.nvim_create_namespace("snacks_picker_no_hlsearch")
+    vim.api.nvim_set_hl(ns, "Search",    {})
+    vim.api.nvim_set_hl(ns, "CurSearch", {})
+    vim.api.nvim_set_hl(ns, "IncSearch", {})
+    local function attach_ns(win)
+      if not vim.api.nvim_win_is_valid(win) then return end
+      local buf = vim.api.nvim_win_get_buf(win)
+      local ft = vim.bo[buf].filetype
+      if ft == "snacks_picker_list" or ft == "snacks_picker_preview" then
+        pcall(vim.api.nvim_win_set_hl_ns, win, ns)
+      end
+    end
+    vim.api.nvim_create_autocmd({ "BufWinEnter", "WinEnter", "FileType" }, {
+      group = vim.api.nvim_create_augroup("snacks_picker_no_hlsearch", { clear = true }),
+      callback = function()
+        local win = vim.api.nvim_get_current_win()
+        vim.schedule(function() attach_ns(win) end)
+      end,
+    })
+    -- Catch windows already open at setup time (session restore, etc.).
+    vim.schedule(function()
+      for _, w in ipairs(vim.api.nvim_list_wins()) do attach_ns(w) end
+    end)
+
     -- Snacks's image placement writes empty lines into the buffer during
     -- progress/render passes and never resets `modified` — so the buffer
     -- shows a phantom `[+]` flag after opening an image. Re-assert

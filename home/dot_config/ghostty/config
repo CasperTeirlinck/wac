@@ -46,9 +46,27 @@ keybind = cmd+x=text:\x18
 keybind = cmd+d=text:\x04
 keybind = cmd+shift+d=csi:100;6u
 
+# Forward Cmd+[ / Cmd+] as Ctrl+Shift+[ / ] CSI-u sequences (modifier 6)
+# so nvim's <C-S-[> / <C-S-]> mappings fire — used by file-history.lua.
+# 91/93 are codepoints for `[`/`]`.
+# We can't use the natural Super (=9) modifier because tmux 3.5a strips
+# CSI-u sequences with modifier > 8; modifier 6 (Ctrl+Shift) passes through
+# unmangled (same mechanism as cmd+shift+f=csi:102;6u above).
+# We also bind the Ctrl variants: Karabiner swaps Left-Cmd↔Left-Ctrl on
+# PC keyboards, so physical "Cmd"+[ arrives at Ghostty as Ctrl+[ on those.
+# Overriding Ctrl+[ would normally break ESC, but Caps Lock → Escape
+# (also via Karabiner) covers that.
+keybind = cmd+bracket_left=csi:91;6u
+keybind = cmd+bracket_right=csi:93;6u
+keybind = ctrl+bracket_left=csi:91;6u
+keybind = ctrl+bracket_right=csi:93;6u
+
 # Send the CSI-u sequence for Ctrl+Enter so nvim's <C-CR> mapping fires.
 # (By default terminals deliver Ctrl+Enter as a plain CR.)
 keybind = ctrl+enter=csi:13;5u
+# Same for cmd+enter — built-in Mac keyboard doesn't get the Karabiner
+# Cmd↔Ctrl swap, so forward Cmd+Enter as if it were Ctrl+Enter too.
+keybind = cmd+enter=csi:13;5u
 
 # Allow OSC52 clipboard writes without prompting. tmux (`set-clipboard on`)
 # uses OSC52 to push mouse-drag selections into the macOS clipboard, including

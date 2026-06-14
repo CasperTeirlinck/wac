@@ -17,7 +17,7 @@ set -g focus-events on
 
 # Extended keys for Shift+Enter, etc. (needed for Claude Code in tmux)
 set -s extended-keys on
-set -as terminal-features 'xterm*:extkeys'
+set -as terminal-features 'xterm*:extkeys,screen*:extkeys'
 
 # Pass Shift+Enter to applications (for Claude Code multi-line input)
 bind-key -n S-Enter send-keys Escape "[13;2u"
