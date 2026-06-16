@@ -5,10 +5,10 @@ set -euo pipefail
 #   dest_name empty  -> copy contents of sparse_path into ./skills/
 #   dest_name set    -> copy sparse_path itself to ./skills/<dest_name>/
 SOURCES=(
-	"https://github.com/obra/superpowers.git|skills|"
 	"https://github.com/jgraph/drawio-mcp.git|skill-cli/drawio|drawio"
 	"https://github.com/mattpocock/skills.git|skills/productivity/grill-me|grill-me"
 	"https://github.com/mattpocock/skills.git|skills/engineering/grill-with-docs|grill-with-docs"
+	"https://github.com/mattpocock/skills.git|skills/productivity/handoff|handoff"
 )
 
 TMP_DIR=""
