@@ -231,7 +231,7 @@ bind-key ? display-popup -E -h 80% -w 80% "tmux list-keys -T prefix | sort | les
 # active one.
 set -g @bridge_cap '#[fg=#21252b,bg=#3b3f4c,nobold,noitalics,nounderscore]'
 set -g @thin_cap   '#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]'
-set -wg window-status-format '#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#{@bridge_cap},#{@thin_cap}}'
+set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#{@bridge_cap},#{@thin_cap}}'
 set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
 
 
