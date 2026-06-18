@@ -11,6 +11,12 @@ in {
   home.stateVersion = "23.11";
 
   home.packages = [
+    # SVG/PDF → raster for snacks.image previews in nvim. Installed via
+    # nixpkgs (not homebrew.brews) because brew's imagemagick is built
+    # --without-pango and has no fonts, so its built-in SVG renderer fails
+    # on text-heavy SVGs (Mermaid diagrams etc.) with `unable to read font ''`.
+    # nixpkgs's build includes pangocairo + rsvg + fontconfig delegates.
+    pkgs.imagemagick
   ];
 
   home.file = {

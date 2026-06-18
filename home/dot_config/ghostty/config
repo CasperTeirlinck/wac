@@ -40,6 +40,9 @@ keybind = cmd+shift+f=csi:102;6u
 # Forward Cmd+X as Ctrl+X so nvim's <C-x> = cut mapping fires.
 keybind = cmd+x=text:\x18
 
+# Forward Cmd+S as Ctrl+S so LazyVim's <C-s> = :w mapping fires.
+keybind = cmd+s=text:\x13
+
 # Forward Cmd+D as Ctrl+D so nvim's multicursor (<C-d>) fires. Overrides
 # Ghostty's default cmd+d=new_split:right. Needed on keyboards where
 # Karabiner isn't swapping Cmd↔Ctrl (built-in Mac keyboard).

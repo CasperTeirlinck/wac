@@ -13,7 +13,17 @@ return {
     -- Workaround: `:e!` to re-render. Tried 3rd/image.nvim as an
     -- alternative; its hijack mode interacts badly with the snacks.explorer
     -- sidebar layout, so we're back here.
-    opts.image = vim.tbl_deep_extend("force", opts.image or {}, { enabled = true })
+    -- Add `svg` to the formats allowlist — it's not in snacks's default
+    -- list, so without this `nvim foo.svg` and inline `![](foo.svg)` in
+    -- markdown both fall back to text rendering. The vector → PNG
+    -- conversion recipe is already wired up in snacks's `convert.magick`
+    -- (rasterised at -density 192), so allowing the extension is all
+    -- that's needed.
+    opts.image = vim.tbl_deep_extend("force", opts.image or {}, {
+      enabled = true,
+      formats = { "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff",
+        "heic", "avif", "mp4", "mov", "avi", "mkv", "webm", "pdf", "icns", "svg" },
+    })
     -- Suppress `/` search highlighting in snacks picker windows (esp. the
     -- explorer sidebar). Without this, hlsearch lights up matching
     -- filenames in the tree whenever you `/` search inside a file buffer.
@@ -24,9 +34,29 @@ return {
     -- This bypasses `winhighlight` (which snacks keeps rewriting) and
     -- works even for windows that already exist when this code runs.
     local ns = vim.api.nvim_create_namespace("snacks_picker_no_hlsearch")
-    vim.api.nvim_set_hl(ns, "Search",    {})
-    vim.api.nvim_set_hl(ns, "CurSearch", {})
-    vim.api.nvim_set_hl(ns, "IncSearch", {})
+    -- Attaching a window-local namespace has two side effects that bite the
+    -- picker's selection highlight:
+    --   1. `winhighlight` is bypassed for that window — so snacks's
+    --      `CursorLine:SnacksPickerListCursorLine` remap never applies, and
+    --      the cursorline is drawn using plain `CursorLine` (whose bg
+    --      `#21262b` is nearly identical to our Normal `#21252b` → invisible).
+    --   2. Link targets are resolved *within* the namespace, not falling
+    --      back to global ns 0. So `link = "Visual"` here would resolve to
+    --      an empty entry, not the global Visual.
+    -- Workaround: inline the Visual bg (`#3b3f4c`) directly onto CursorLine
+    -- in this namespace, and refresh on ColorScheme to follow theme changes.
+    local function refresh()
+      vim.api.nvim_set_hl(ns, "Search",    {})
+      vim.api.nvim_set_hl(ns, "CurSearch", {})
+      vim.api.nvim_set_hl(ns, "IncSearch", {})
+      local visual = vim.api.nvim_get_hl(0, { name = "Visual", link = false })
+      vim.api.nvim_set_hl(ns, "CursorLine", { bg = visual.bg and string.format("#%06x", visual.bg) or "#3b3f4c" })
+    end
+    refresh()
+    vim.api.nvim_create_autocmd("ColorScheme", {
+      group = vim.api.nvim_create_augroup("snacks_picker_no_hlsearch_refresh", { clear = true }),
+      callback = refresh,
+    })
     local function attach_ns(win)
       if not vim.api.nvim_win_is_valid(win) then return end
       local buf = vim.api.nvim_win_get_buf(win)
