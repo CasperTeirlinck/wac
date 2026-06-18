@@ -37,6 +37,13 @@ keybind = cmd+z=text:\x1a
 # Cmd key.
 keybind = cmd+shift+f=csi:102;6u
 
+# Forward Cmd+/ and Ctrl+/ as 0x1F (= <C-_> in Neovim) so the nvim
+# comment-toggle mapping fires. Without this Ghostty's default for
+# Cmd+/ either gets eaten by macOS (Help menu) or arrives as a bare `/`,
+# and Ctrl+/ on the built-in keyboard isn't forwarded as 0x1F either.
+keybind = cmd+slash=text:\x1f
+keybind = ctrl+slash=text:\x1f
+
 # Forward Cmd+X as Ctrl+X so nvim's <C-x> = cut mapping fires.
 keybind = cmd+x=text:\x18
 

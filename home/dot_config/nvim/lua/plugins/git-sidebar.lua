@@ -14,41 +14,7 @@ local function find_main_window()
 end
 
 -- Keep in sync with the explorer layout width in snacks.lua.
-local LEFT_SIDEBAR_WIDTH = 35
 local RIGHT_SIDEBAR_WIDTH = 35
-
-local function ensure_main_window()
-  local existing = find_main_window()
-  if existing then return existing end
-  local wins = vim.api.nvim_list_wins()
-  if #wins == 0 then return nil end
-  local sorted = {}
-  for _, w in ipairs(wins) do
-    table.insert(sorted, { win = w, col = vim.api.nvim_win_get_position(w)[2] })
-  end
-  table.sort(sorted, function(a, b) return a.col < b.col end)
-  local left_win, right_win = sorted[1].win, sorted[#sorted].win
-  vim.api.nvim_set_current_win(right_win)
-  vim.cmd("leftabove vnew")
-  local main_win = vim.api.nvim_get_current_win()
-  local placeholder_buf = vim.api.nvim_get_current_buf()
-  local candidates = {}
-  for _, b in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do
-    if b.bufnr ~= placeholder_buf and vim.bo[b.bufnr].buftype == "" then
-      table.insert(candidates, b)
-    end
-  end
-  table.sort(candidates, function(a, b) return a.lastused > b.lastused end)
-  if #candidates > 0 then
-    vim.cmd("buffer " .. candidates[1].bufnr)
-    pcall(vim.api.nvim_buf_delete, placeholder_buf, {})
-  end
-  -- When there's no candidate, leave the placeholder listed so a
-  -- normal [No Name] tab appears in the bufferline.
-  pcall(vim.api.nvim_win_set_width, left_win, LEFT_SIDEBAR_WIDTH)
-  pcall(vim.api.nvim_win_set_width, right_win, RIGHT_SIDEBAR_WIDTH)
-  return main_win
-end
 
 -- Set of paths the user has collapsed in the git tree sidebar.
 local collapsed = {}
@@ -65,14 +31,14 @@ local function open_file(picker, item)
     return
   end
   if not item.file then return end
-  local target = ensure_main_window()
+  local target = find_main_window()
   if target then vim.api.nvim_set_current_win(target) end
   vim.cmd("edit " .. vim.fn.fnameescape(item.file))
 end
 
 local function open_with_diff(item)
   if not item or not item.file or item.dir then return end
-  local target = ensure_main_window()
+  local target = find_main_window()
   if target then vim.api.nvim_set_current_win(target) end
   vim.cmd("edit " .. vim.fn.fnameescape(item.file))
   -- Poll for gitsigns to attach to the new buffer before calling
@@ -547,9 +513,8 @@ return {
         return true
       end
 
-      -- Maintain a main editor window when only sidebars remain, wipe
-      -- orphaned listed buffers so :q closes both window and tab, and
-      -- clean up orphaned diff windows.
+      -- Wipe orphaned listed buffers so :q closes both window and tab,
+      -- and clean up orphaned diff windows when their partner goes away.
       vim.api.nvim_create_autocmd("WinClosed", {
         callback = function(args)
           local closed_win = tonumber(args.match)
@@ -576,8 +541,6 @@ return {
                 pcall(vim.api.nvim_buf_delete, closed_buf, {})
               end
             end
-
-            if not find_main_window() then ensure_main_window() end
           end)
         end,
       })
@@ -589,7 +552,6 @@ return {
         callback = function()
           vim.schedule(function()
             cleanup_orphan_diff()
-            if not find_main_window() then ensure_main_window() end
           end)
         end,
       })

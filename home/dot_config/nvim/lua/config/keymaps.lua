@@ -203,6 +203,77 @@ map("x", "<C-x>", '"+d', { desc = "Cut selection to clipboard" })
 map("s", "<C-x>", '<C-g>"+d', { desc = "Cut selection to clipboard" })
 map("i", "<C-x>", '<Cmd>normal! "+dd<CR>', { desc = "Cut line to clipboard" })
 
+-- Ctrl+/ : toggle comment (VSCode-style). Karabiner swaps Cmd↔Ctrl so
+-- the macOS muscle-memory Cmd+/ lands here too. Drives Neovim's built-in
+-- `gc`/`gcc` operator (ts-comments.nvim wires commentstring via
+-- treesitter for embedded languages like .tsx).
+-- `<C-_>` (0x1F) is the legacy-terminal encoding of Ctrl+/; bind both
+-- so it works regardless of whether the terminal speaks CSI-u or not.
+--
+-- Empty-line special case: gcc is a no-op on a blank line (nothing to
+-- toggle). VSCode inserts the comment leader on blank lines and parks
+-- the cursor ready to type. Match that.
+local function insert_comment_leader_if_blank()
+  local line = vim.api.nvim_get_current_line()
+  if not line:match("^%s*$") then return false end
+  local cs = vim.bo.commentstring
+  if cs == "" then return false end
+  -- commentstring is "<before>%s<after>" — e.g. "-- %s", "// %s",
+  -- "{/* %s */}". Extract both halves; ensure a space after the prefix.
+  local before, after = cs:match("(.-)%%s(.*)")
+  if not before then return false end
+  if not before:match("%s$") then before = before .. " " end
+  local indent = line:match("^%s*") or ""
+  vim.api.nvim_set_current_line(indent .. before .. after)
+  local row = vim.api.nvim_win_get_cursor(0)[1]
+  -- Park cursor between prefix and suffix (or at EOL for line comments).
+  vim.api.nvim_win_set_cursor(0, { row, #indent + #before })
+  return true
+end
+local function comment_normal()
+  if insert_comment_leader_if_blank() then
+    vim.cmd("startinsert")
+    return
+  end
+  vim.api.nvim_feedkeys("gcc", "m", false)
+end
+local function comment_insert()
+  if insert_comment_leader_if_blank() then return end
+  vim.cmd("normal gcc")
+end
+for _, lhs in ipairs({ "<C-/>", "<C-_>" }) do
+  map("n", lhs, comment_normal,        { desc = "Toggle comment / insert leader" })
+  map("x", lhs, "gc",                  { remap = true, desc = "Toggle comment" })
+  -- Select mode: <C-g> flips to Visual so `gc` can operate on the marks.
+  map("s", lhs, "<C-g>gc",             { remap = true, desc = "Toggle comment" })
+  map("i", lhs, comment_insert,        { desc = "Toggle comment / insert leader" })
+end
+
+-- Shift+Tab: dedent (VSCode-style). Tab is left alone (snippet/completion
+-- plugins may use it). blink.cmp is on the "enter" preset, so it does NOT
+-- bind <S-Tab> in insert mode — safe to override here.
+-- Select-mode dance: <C-g> flips to Visual so the `<` operator sees the
+-- marks, `gv` reselects after dedent, final <C-g> flips back to Select.
+map("n", "<S-Tab>", "<<",                  { desc = "Dedent line" })
+map("x", "<S-Tab>", "<gv",                 { desc = "Dedent selection" })
+map("s", "<S-Tab>", "<C-g><gv<C-g>",       { desc = "Dedent selection" })
+map("i", "<S-Tab>", "<C-d>",               { desc = "Dedent line" })
+
+-- F2: rename symbol under cursor via LSP (VSCode-style).
+-- Works from normal, insert, visual, and select mode. In visual/select
+-- we feedkeys <Esc> first and schedule the rename so the cursor settles
+-- on a single position before the LSP `prepareRename` request fires.
+local function lsp_rename()
+  local mode = vim.fn.mode()
+  if mode == "n" or mode == "i" then
+    vim.lsp.buf.rename()
+    return
+  end
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
+  vim.schedule(function() vim.lsp.buf.rename() end)
+end
+map({ "n", "i", "v", "s" }, "<F2>", lsp_rename, { desc = "Rename symbol (LSP)" })
+
 -- Ctrl+Shift+F: global text search (grep across project).
 -- F1: global file search (fuzzy find files in project).
 -- F3: search open buffers.
