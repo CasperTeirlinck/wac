@@ -261,14 +261,15 @@ bind-key ? display-popup -E -h 80% -w 80% "tmux list-keys -T prefix | sort | les
 # each conditional branch comma-free (a single colour or a single glyph)
 # sidesteps the escape entirely. Branches: bridge cap is  (right-
 # bulging filled, U+E0B4 — same glyph as the active tab's right cap) over
-# fg=#282C34/bg=#3b3f4c. The disc fills the LEFT half of the cell in
-# #282C34 (the One Half Dark terminal bg, hardcoded — change this if the
-# terminal scheme changes) so it visually blends into terminal bg as a
-# 'cutout', while the cell bg on the RIGHT half is #3b3f4c so it connects
-# into the active tab body. Thin cap is  (right-bulging outline,
-# U+E0B5) over fg=#5c6370/bg=default — a subtle separator on terminal bg
-# between two inactive tabs.
-set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#282C34,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},,}'
+# fg=#21252b/bg=#3b3f4c. The disc fills the LEFT half of the cell in
+# #21252b (the onedark/Atom One Dark dark accent — the user matches their
+# terminal bg to this hex on both Mac (Ghostty Atom One Dark) and Windows
+# Terminal; update if the terminal bg ever changes) so it visually blends
+# into terminal bg as a 'cutout', while the cell bg on the RIGHT half is
+# #3b3f4c so it connects into the active tab body. Thin cap is  (right-
+# bulging outline, U+E0B5) over fg=#5c6370/bg=default — a subtle separator
+# on terminal bg between two inactive tabs.
+set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#21252b,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},,}'
 set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
 
 

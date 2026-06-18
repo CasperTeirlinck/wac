@@ -28,9 +28,11 @@ TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SE
 #              fg=#3b3f4c bg=default — active bg curves out into terminal bg.
 #   inactive (next tab is active) → trailing right-bulging filled cap
 #              (RIGHT_BOLD = U+E0B4, same glyph as the active tab's own
-#              right cap) over fg=#282C34 bg=#3b3f4c. The disc fills the
-#              LEFT half of the cell in #282C34 (the One Half Dark
-#              terminal bg — hardcoded; update if the terminal scheme
+#              right cap) over fg=#21252b bg=#3b3f4c. The disc fills the
+#              LEFT half of the cell in #21252b (the onedark/Atom
+#              One Dark accent the user uses as the terminal bg on both
+#              Mac (Ghostty Atom One Dark) and Windows Terminal (theme bg
+#              adjusted to match) — hardcoded; update if the terminal bg
 #              changes) so it visually blends into terminal bg as a
 #              'cutout', while the RIGHT half of the cell sits at bg
 #              #3b3f4c, connecting smoothly into the active tab body.
@@ -63,7 +65,7 @@ if [ -z $TMUX_POWERLINE_WINDOW_STATUS_FORMAT ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_FORMAT=(
 		"#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]" \
 		" #W " \
-		"#[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#282C34,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]" \
+		"#[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#21252b,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]" \
 		"#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},${TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD},${TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}}" \
 	)
 fi
