@@ -17,17 +17,25 @@ TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SEPARATOR=${TMUX_POWERLINE_DEFAULT_RIGHTSIDE_SE
 # Vim-statusline (lualine on onedark) style — only the trailing right-sided
 # rounded cap on each tab (no leading caps → no pill shape). The transition
 # INTO the active tab comes from the *preceding inactive tab's* trailing cap,
-# coloured so its bg matches the active tab's bg (default → #3b3f4c via the
-# curve). This requires knowing whether the next tab is the active one; we
-# read `@active_window_index` (set by a session-window-changed / client-
-# attached hook in the tmux configs) and compare to `window_index + 1`.
+# coloured so the bridge cap mirrors the active tab's own right cap
+# (fg=#3b3f4c, bg=default, filled glyph) — symmetric rounded edges that
+# blend into terminal bg. The active-vs-not check reads
+# `@active_window_index` (set by the session-window-changed /
+# client-attached / after-select-window hooks in the tmux configs) and
+# compares it to `window_index + 1`.
 #
-#   active   → bg3 (#3b3f4c) with light fg (#abb2bf), trailing `)` cap that
-#              curves the section bg out into the default bg.
-#   inactive (when next tab is active) → trailing `)` cap fg=default,
-#              bg=#3b3f4c: LEFT half default (continues inactive), RIGHT half
-#              #3b3f4c (continues into active). Smooth bridge.
-#   inactive (otherwise) → trailing thin `)` cap fg=#5c6370, bg=default.
+#   active   → bg3 (#3b3f4c) with light fg (#abb2bf), trailing filled cap
+#              fg=#3b3f4c bg=default — active bg curves out into terminal bg.
+#   inactive (next tab is active) → trailing right-bulging filled cap
+#              (RIGHT_BOLD = U+E0B4, same glyph as the active tab's own
+#              right cap) over fg=#282C34 bg=#3b3f4c. The disc fills the
+#              LEFT half of the cell in #282C34 (the One Half Dark
+#              terminal bg — hardcoded; update if the terminal scheme
+#              changes) so it visually blends into terminal bg as a
+#              'cutout', while the RIGHT half of the cell sits at bg
+#              #3b3f4c, connecting smoothly into the active tab body.
+#   inactive (otherwise) → trailing outline cap fg=#5c6370, bg=default — a
+#              subtle separator on terminal bg.
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_CURRENT ]; then
 	TMUX_POWERLINE_WINDOW_STATUS_CURRENT=(
 		"#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]" \
@@ -44,15 +52,19 @@ if [ -z $TMUX_POWERLINE_WINDOW_STATUS_STYLE ]; then
 fi
 
 if [ -z $TMUX_POWERLINE_WINDOW_STATUS_FORMAT ]; then
-	# Inside the conditional body, every literal comma must be doubled (`,,`)
-	# so tmux's format parser doesn't read it as the then/else separator.
-	# That includes the commas inside the `#[...]` style blocks.
+	# Trailing cap colour AND glyph are each selected by their own
+	# `#{?cond,A,B}` rather than wrapping a whole `#[…]` style block in the
+	# ternary. Wrapping forces tmux to escape inner commas as `,,`; tmux 3.5
+	# unescapes those before parsing the style, but tmux 3.6 leaves the
+	# `,,` in place, the style parser hits empty attribute tokens, and the
+	# tail (`nounderscore]`) renders as literal text on the inactive tab
+	# before the active one. Keeping each branch comma-free (one colour or
+	# one glyph) sidesteps the escape entirely.
 	TMUX_POWERLINE_WINDOW_STATUS_FORMAT=(
 		"#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]" \
 		" #W " \
-		"#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}}," \
-		"#[fg=#21252b,,bg=#3b3f4c,,nobold,,noitalics,,nounderscore]${TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD}," \
-		"#[fg=#5c6370,,bg=default,,nobold,,noitalics,,nounderscore]${TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}}" \
+		"#[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#282C34,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]" \
+		"#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},${TMUX_POWERLINE_SEPARATOR_RIGHT_BOLD},${TMUX_POWERLINE_SEPARATOR_RIGHT_THIN}}" \
 	)
 fi
 

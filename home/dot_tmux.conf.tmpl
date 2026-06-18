@@ -3,10 +3,14 @@
 is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|l?n?vim?x?)(diff)?$'"
 # Same idea for an inner tmux client (launched via `tmi` on the `inner` socket)
-# running in the active pane — match a foreground process whose comm is exactly
-# `tmux`. When matched, the C-a Arrow bindings forward to inner as C-e Arrow.
+# running in the active pane — match a foreground process whose comm is
+# `tmux`, optionally with a `: client` / `: server` suffix. macOS reports the
+# bare `tmux` in comm, but Linux tmux calls setproctitle() and ps shows
+# `tmux: client` for the client process; without the optional `(:.*)?` tail
+# the regex would miss on Linux/WSL and `C-a x` etc. would fall through to
+# the outer pane instead of being forwarded to the inner tmux.
 is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
-    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?tmux$'"
+    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?tmux(:.*)?$'"
     
 set -s escape-time 1
 
@@ -47,14 +51,18 @@ set-option -g status-justify left
 
 # Track the active window's index in @active_window_index so the powerline
 # theme can render a vim/lualine-style transition cap on the inactive tab that
-# precedes the active one (its bg becomes the active tab's bg, bridging the
-# colour change smoothly). `set-option` doesn't expand format strings in its
-# value, so we round-trip through `run-shell` which does — the resulting
-# command stores the *expanded* index, not the literal `#{window_index}`.
+# precedes the active one (its trailing cap fg becomes the active tab's bg,
+# bridging the colour change smoothly). `set-option` doesn't expand format
+# strings in its value, so we round-trip through `run-shell` which does — the
+# resulting command stores the *expanded* index, not the literal
+# `#{window_index}`. We run synchronously (no `-b`) so the option is in place
+# before tmux redraws the status bar after the hook fires; with `-b` the
+# initial post-attach render uses the stale seeded `1`, and the bridge cap
+# only appears after the user manually switches a tab.
 set -g @active_window_index 1
-set-hook -g session-window-changed 'run-shell -b "tmux set -g @active_window_index #{window_index}"'
-set-hook -g client-attached        'run-shell -b "tmux set -g @active_window_index #{window_index}"'
-set-hook -g after-select-window    'run-shell -b "tmux set -g @active_window_index #{window_index}"'
+set-hook -g session-window-changed 'run-shell "tmux set -g @active_window_index #{window_index}"'
+set-hook -g client-attached        'run-shell "tmux set -g @active_window_index #{window_index}"'
+set-hook -g after-select-window    'run-shell "tmux set -g @active_window_index #{window_index}"'
 
 # Scroll length
 set-option -g history-limit 10000
@@ -111,6 +119,13 @@ set-option -g status-interval 5
 set-option -g automatic-rename on
 set-window-option -g window-status-style fg=white,bg=default
 set-window-option -g window-status-current-style fg=#000000,bg=default
+# tmux's default window-status-separator is a literal " " (one space) inserted
+# between each tab's render. With the lualine-style caps we draw ourselves
+# that space appears as a 1-cell gap with bg=default between the bridge cap
+# and the active tab's body (the cap can't connect into the active tab's bg).
+# Empty separator → caps render flush against the next tab; the thin-cap
+# glyph between two inactive tabs still provides visual separation.
+set-window-option -g window-status-separator ''
 set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
 
 # Moving between panes
@@ -194,6 +209,12 @@ set -g pane-border-status off
 # copy-mode: white-ish bar with dark fg, replacing the harsh default yellow.
 set -g mode-style 'fg=#21252b,bg=#abb2bf,bold'
 
+# Prompt + message style (e.g. `prefix t` rename-tab prompt, tmux notifications)
+# and command-mode prompt — match the active-tab palette so they read as part
+# of the status bar instead of tmux's loud default `bg=yellow,fg=black`.
+set -g message-style 'fg=#abb2bf,bg=#3b3f4c'
+set -g message-command-style 'fg=#abb2bf,bg=#3b3f4c'
+
 # Config
 unbind r
 bind r source-file ~/.tmux.conf
@@ -229,9 +250,25 @@ bind-key ? display-popup -E -h 80% -w 80% "tmux list-keys -T prefix | sort | les
 # format directly here lets the conditional run at render time, which is
 # what drives the smooth bridge cap on the inactive tab right before the
 # active one.
-set -g @bridge_cap '#[fg=#21252b,bg=#3b3f4c,nobold,noitalics,nounderscore]'
-set -g @thin_cap   '#[fg=#5c6370,bg=default,nobold,noitalics,nounderscore]'
-set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#{@bridge_cap},#{@thin_cap}}'
+# The trailing cap is inlined as a single style block + glyph, with each
+# attribute *and* the glyph itself selected by `#{?cond,A,B}` rather than
+# `#{?cond,#[…bridge…],#[…thin…]}`. Wrapping a whole
+# `#[…]` style block in a ternary forces tmux to escape the inner commas as
+# `,,` so they don't terminate the branch; tmux 3.5 unescapes them before
+# parsing the style, but tmux 3.6 leaves the `,,` in place, the style parser
+# hits empty attribute tokens, and the tail of the style (`nounderscore]`)
+# renders as literal text on the inactive tab before the active one. Keeping
+# each conditional branch comma-free (a single colour or a single glyph)
+# sidesteps the escape entirely. Branches: bridge cap is  (right-
+# bulging filled, U+E0B4 — same glyph as the active tab's right cap) over
+# fg=#282C34/bg=#3b3f4c. The disc fills the LEFT half of the cell in
+# #282C34 (the One Half Dark terminal bg, hardcoded — change this if the
+# terminal scheme changes) so it visually blends into terminal bg as a
+# 'cutout', while the cell bg on the RIGHT half is #3b3f4c so it connects
+# into the active tab body. Thin cap is  (right-bulging outline,
+# U+E0B5) over fg=#5c6370/bg=default — a subtle separator on terminal bg
+# between two inactive tabs.
+set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#282C34,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},,}'
 set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
 
 
@@ -239,6 +276,6 @@ set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,n
 # trailing cap is conditional: when the first tab is the active one, the
 # cap bg becomes the active tab's bg (#3b3f4c) so the colour flows into
 # it smoothly; otherwise it rounds off into default like before.
-set -g @sess_cap_active   '#[fg=#98c379,bg=#3b3f4c,nobold,noitalics,nounderscore]'
-set -g @sess_cap_inactive '#[fg=#98c379,bg=default,nobold,noitalics,nounderscore]'
-set -g status-left '#[fg=#21252b,bg=#98c379] #S #{?#{==:#{@active_window_index},1},#{@sess_cap_active},#{@sess_cap_inactive}}#[default]'
+# Same attribute-level-conditional shape as window-status-format above to
+# dodge the tmux 3.6 `,,`-unescape bug — see comment block above for why.
+set -g status-left '#[fg=#21252b,bg=#98c379] #S #[fg=#98c379,bg=#{?#{==:#{@active_window_index},1},#3b3f4c,default},nobold,noitalics,nounderscore]#[default]'
