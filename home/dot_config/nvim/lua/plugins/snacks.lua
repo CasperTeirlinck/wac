@@ -101,6 +101,7 @@ return {
       opts.picker.sources.explorer or {},
       {
         hidden = true,
+        ignored = true,
         -- Custom layout: list first (so the file tree starts at the
         -- very top of the sidebar), input pinned to the bottom as a
         -- single borderless row. We can't use snacks's `auto_hide` /

@@ -69,9 +69,12 @@ New-ItemProperty @shellParams
 Test if the ssh connection is working from WSL:
 
 ```bash
-# Get the Windows ip:
+# In mirrored networking mode (.wslconfig: networkingMode=mirrored), WSL
+# shares the host's loopback, so Windows services are reachable at 127.0.0.1.
+ssh -o PreferredAuthentications=password casper@127.0.0.1
+
+# In NAT mode, the Windows host is the default gateway:
 ip route show | grep default
-# Connect using ssh:
 ssh -o PreferredAuthentications=password casper@172.x.x.x
 ```
 

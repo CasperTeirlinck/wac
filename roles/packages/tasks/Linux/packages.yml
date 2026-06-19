@@ -35,7 +35,6 @@
       loop:
         # - wezterm
         - flowrs
-        - argonaut
         - argocd
         - opencode
         - beads

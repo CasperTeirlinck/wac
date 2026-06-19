@@ -2,5 +2,12 @@
 127.0.0.1 ansible_connection=local ansible_user=casper
 
 [windows]
-; Obtain the Windows ip from WSL using `ip route show | grep default`
-172.x.x.x ansible_connection=ssh ansible_user=casper ansible_password=... ansible_ssh_common_args='-o PreferredAuthentications=password' ansible_shell_type=powershell
+; In mirrored networking mode (.wslconfig: networkingMode=mirrored), WSL
+; shares the host's network namespace and loopback, so reach Windows
+; services on 127.0.0.1. In NAT mode, change ansible_host to the
+; default-gateway IP from `ip route show | grep default` instead.
+; Inventory name is intentionally distinct from the localhost entry
+; above. If both groups list 127.0.0.1, Ansible merges host vars
+; across groups and the windows ssh/powershell settings bleed into the
+; localhost play.
+windows-host ansible_host=127.0.0.1 ansible_connection=ssh ansible_user=casper ansible_password=... ansible_ssh_common_args='-o PreferredAuthentications=password -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null' ansible_shell_type=powershell

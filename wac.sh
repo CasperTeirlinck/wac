@@ -2,6 +2,10 @@
 
 cd "$(dirname "$0")" || exit 1
 
+function is_wsl() {
+  [[ -f /proc/sys/kernel/osrelease ]] && grep -qi microsoft /proc/sys/kernel/osrelease
+}
+
 function main_apply() {
   if [ "$dry" = false ]; then
     echo "🦎 Applying dotfiles:"
@@ -50,18 +54,22 @@ function main_bootstrap() {
 
 function apply_ansible() {
   echo "→ 🏗️  Applying Ansible..."
+  local limit=()
+  if ! is_wsl; then
+    limit=(--limit localhost)
+  fi
   if [ -n "$tags" ]; then
     echo "only for tags: $tags"
     if [ "$dry" = true ]; then
-      ansible-playbook main.yml -K --tags """$tags""" --check --diff
+      ansible-playbook main.yml -K "${limit[@]}" --tags """$tags""" --check --diff
     else
-      ansible-playbook main.yml -K --tags """$tags"""
+      ansible-playbook main.yml -K "${limit[@]}" --tags """$tags"""
     fi
   else
     if [ "$dry" = true ]; then
-      ansible-playbook main.yml -K --check --diff
+      ansible-playbook main.yml -K "${limit[@]}" --check --diff
     else
-      ansible-playbook main.yml -K
+      ansible-playbook main.yml -K "${limit[@]}"
     fi
   fi
 }
@@ -99,7 +107,7 @@ function apply_chezmoi() {
   echo "→ 🗃️  Applying Chezmoi..."
   chezmoi apply
 
-  if [[ "$OSTYPE" == "darwin"* ]]; then
+  if ! is_wsl; then
     return
   fi
 

@@ -20,7 +20,7 @@
 
 - name: Sync Windows dotfiles from WSL to Windows
   win_shell: |
-    wsl cp -r /home/{{ ansible_user }}/.dotfiles/home-windows/. /mnt/c/Users/{{ ansible_user }}/.dotfiles/
+    wsl cp -rL /home/{{ ansible_user }}/.dotfiles/home-windows/. /mnt/c/Users/{{ ansible_user }}/.dotfiles/
   changed_when: false
   tags: chezmoi-windows
 
