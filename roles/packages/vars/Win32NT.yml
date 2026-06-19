@@ -2,6 +2,10 @@ windows_packages:
   - Microsoft.VisualStudioCode
   - Anthropic.ClaudeCode
   - Casey.Just
-  - SteveYegge.Beads
   - DoltHub.Dolt
-  
+  - Neovim.Neovim
+  - BurntSushi.ripgrep.MSVC
+  - sharkdp.fd
+  - JesseDuffield.lazygit
+  - OpenJS.NodeJS.LTS
+  - zig.zig
