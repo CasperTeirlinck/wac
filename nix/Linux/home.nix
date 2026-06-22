@@ -44,7 +44,6 @@ in {
     pkgs.tmux
     pkgs.neovim
     pkgs.atuin
-    pkgs.neofetch
     pkgs.eyedropper
     pkgs.gh
     pkgs.claude-code
