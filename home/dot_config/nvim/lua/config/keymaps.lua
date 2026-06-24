@@ -259,6 +259,37 @@ map("x", "<S-Tab>", "<gv",                 { desc = "Dedent selection" })
 map("s", "<S-Tab>", "<C-g><gv<C-g>",       { desc = "Dedent selection" })
 map("i", "<S-Tab>", "<C-d>",               { desc = "Dedent line" })
 
+-- <leader>cp : copy absolute file path to the system clipboard. If the
+-- current window belongs to a snacks picker (explorer / git_tree /
+-- buffers / etc.), yank the highlighted item's path; otherwise yank
+-- the current buffer's path.
+local function yank_path()
+  local ok, snacks = pcall(require, "snacks")
+  if ok and snacks.picker then
+    local cur_win = vim.api.nvim_get_current_win()
+    for _, p in ipairs(snacks.picker.get() or {}) do
+      local owns = (p.list and p.list.win and p.list.win.win == cur_win)
+                or (p.input and p.input.win and p.input.win.win == cur_win)
+      if owns and p.list and p.list.current then
+        local item = p.list:current()
+        if item and item.file then
+          vim.fn.setreg("+", item.file)
+          vim.notify("Yanked: " .. item.file)
+          return
+        end
+      end
+    end
+  end
+  local path = vim.fn.expand("%:p")
+  if path == "" then
+    vim.notify("Current buffer has no file path", vim.log.levels.WARN)
+    return
+  end
+  vim.fn.setreg("+", path)
+  vim.notify("Yanked: " .. path)
+end
+map("n", "<leader>cp", yank_path, { desc = "Copy file path (buffer or picker item)" })
+
 -- F2: rename symbol under cursor via LSP (VSCode-style).
 -- Works from normal, insert, visual, and select mode. In visual/select
 -- we feedkeys <Esc> first and schedule the rename so the cursor settles
@@ -295,6 +326,23 @@ map({ "n", "i", "v", "s" }, "<F1>", files, { desc = "Find files in project" })
 map({ "n", "i", "v", "s" }, "<F3>", buffers, { desc = "Search open buffers" })
 map({ "n", "i", "v", "s" }, "<F12>", definition, { desc = "Go to definition" })
 map({ "n", "i", "v", "s" }, "<C-CR>", definition, { desc = "Go to definition" })
+
+-- Ctrl+Shift+Enter: LSP hover (docs / signature) for the symbol under the
+-- cursor. Sibling to `<C-CR>` (go-to-definition) — both lift VSCode-style
+-- symbol inspection into nvim. Prefer this over LazyVim's `gK`, which
+-- calls `signature_help` and only resolves inside a function-call paren
+-- (returns "No signature help found" outside that context).
+-- Press again to focus the float; `q` closes it.
+local function hover()
+  local mode = vim.fn.mode()
+  if mode == "n" or mode == "i" then
+    vim.lsp.buf.hover()
+    return
+  end
+  vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
+  vim.schedule(function() vim.lsp.buf.hover() end)
+end
+map({ "n", "i", "v", "s" }, "<C-S-CR>", hover, { desc = "Hover (LSP docs)" })
 -- NOTE: do NOT add a fallback `<Esc>[13;5u` mapping here. The tmux
 -- config sets `extended-keys on` + `terminal-features 'xterm*:extkeys'`,
 -- so Neovim already resolves the CSI-u sequence to <C-CR> natively. A

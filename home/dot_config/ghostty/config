@@ -77,6 +77,10 @@ keybind = ctrl+enter=csi:13;5u
 # Same for cmd+enter — built-in Mac keyboard doesn't get the Karabiner
 # Cmd↔Ctrl swap, so forward Cmd+Enter as if it were Ctrl+Enter too.
 keybind = cmd+enter=csi:13;5u
+# Ctrl+Shift+Enter → <C-S-CR> (modifier mask 6 = shift+ctrl). Drives the
+# nvim hover keymap. Cmd variant matches the cmd+enter fallback above.
+keybind = ctrl+shift+enter=csi:13;6u
+keybind = cmd+shift+enter=csi:13;6u
 
 # Allow OSC52 clipboard writes without prompting. tmux (`set-clipboard on`)
 # uses OSC52 to push mouse-drag selections into the macOS clipboard, including
