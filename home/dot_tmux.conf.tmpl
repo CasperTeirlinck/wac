@@ -11,7 +11,18 @@ is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
 # the outer pane instead of being forwarded to the inner tmux.
 is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?tmux(:.*)?$'"
-    
+
+# Format-based "vim OR inner-tmux" detector for the HELD scroll chord
+# (C-Up/C-Down). The $is_vim / $is_inner_tmux pipelines above shell out to
+# `ps` on every invocation — fine for a one-shot prefix key, but when you
+# HOLD C-Up/C-Down the OS key-repeat fires this dozens of times a second,
+# each spawning a subprocess. tmux serialises them and you get seconds of
+# laggy, jittery "replayed" scrolling (the mouse wheel skips this binding
+# entirely, which is why it's always smooth). This matches
+# pane_current_command via a tmux format instead — evaluated internally,
+# zero subprocesses — so a held key stays cheap. Use with `if-shell -F`.
+is_vim_or_inner_f="#{m/ri:^(g?(view|l?n?vim?x?)(diff)?|tmux(:.*)?)$,#{pane_current_command}}"
+
 set -s escape-time 1
 
 # Forward terminal focus events so nvim's FocusGained/FocusLost fire when
@@ -141,11 +152,101 @@ bind-key Down  if-shell "$is_vim" "send-keys {{$prefix}} Down"  "if-shell \"$is_
 bind-key Left  if-shell "$is_vim" "send-keys {{$prefix}} Left"  "if-shell \"$is_inner_tmux\" \"send-keys C-e Left\"  \"select-pane -L\""
 bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_inner_tmux\" \"send-keys C-e Right\" \"select-pane -R\""
 
-# Moving panes
+# Ctrl/Cmd + Up/Down: scroll the active pane back through its output (e.g.
+# Claude Code, a TUI, shell scrollback) without reaching for the mouse — the
+# same chord that scrolls nvim's viewport. Ghostty forwards Cmd+Up/Down as
+# the Ctrl+Up/Down CSI sequences (see ghostty/config), arriving here as
+# C-Up/C-Down. Three cases, in order:
+#
+#   1. vim OR an inner-tmux pane → forward the raw C-Up/C-Down key so that
+#      layer handles it: nvim runs its <C-Up>/<C-Down> viewport-scroll
+#      keymap, and an inner tmux re-runs this same chain for ITS focused
+#      pane (so a Claude Code tab inside the inner server scrolls correctly).
+#   2. The focused app has mouse reporting on (mouse_any_flag) → synthesise
+#      mouse-wheel events straight to the app, exactly mimicking the physical
+#      wheel. This is the Claude Code case: Claude captures the wheel and
+#      scrolls ITS OWN conversation. Entering tmux copy-mode here was the bug
+#      — that scrolls the raw pane scrollback (the shell + the `claude`
+#      command above it), not Claude's history. `\e[<64;1;1M` / `\e[<65;1;1M`
+#      are SGR wheel-up / wheel-down at row1,col1; -N 3 sends three notches.
+#   3. Plain shell (no mouse) → enter copy-mode (-e: scrolling past the
+#      bottom exits) and scroll the terminal scrollback a few lines. C-Down
+#      only acts when already in copy-mode (pane_in_mode guard) — at the live
+#      prompt there's nothing below. The copy-mode-table bindings below let a
+#      repeated press keep scrolling once copy-mode is active (the root -n
+#      binding stops firing inside copy-mode).
+bind-key -n C-Up   if-shell -F "$is_vim_or_inner_f" "send-keys C-Up"   "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<64;1;1M\"' 'copy-mode -e ; send-keys -X -N 3 scroll-up'"
+bind-key -n C-Down if-shell -F "$is_vim_or_inner_f" "send-keys C-Down" "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<65;1;1M\"' 'if-shell -F \"#{pane_in_mode}\" \"send-keys -X -N 3 scroll-down\"'"
+bind-key -T copy-mode-vi C-Up   send-keys -X -N 3 scroll-up
+bind-key -T copy-mode-vi C-Down send-keys -X -N 3 scroll-down
+bind-key -T copy-mode    C-Up   send-keys -X -N 3 scroll-up
+bind-key -T copy-mode    C-Down send-keys -X -N 3 scroll-down
+
+# --- Copy-mode as a traditional "select mode" --------------------------------
+# Copy-mode gives a cursor you move through the scrollback as if it were a
+# text file, then select + copy. Enter it by scrolling up (C-Up) or `prefix
+# [`; once in, these keys mirror the traditional-editor scheme from nvim
+# (config/keymaps.lua): arrows + Home/End move, Ctrl+arrow is word motion,
+# Shift extends a selection, Ctrl+C copies.
+#
+# `mode-keys vi` makes copy-mode-vi the active table (default here is emacs
+# because EDITOR isn't vi-like). The bindings below override that table.
+set -g mode-keys vi
+
+# Enter select-mode explicitly with `prefix v` (mnemonic: visual). Scrolling
+# (C-Up) deliberately does NOT switch modes — it just scrolls. `prefix [` is
+# taken (window nav), hence v. In an inner-tmux pane, forward `C-e v` so the
+# INNER server enters copy-mode on its own focused pane (e.g. a shell tab),
+# not on the outer pane that wraps it.
+bind-key v if-shell "$is_inner_tmux" "send-keys C-e v" "copy-mode"
+
+# Plain movement collapses any active selection first — an unshifted key
+# deselects, exactly like a GUI editor — then moves. clear-selection is a
+# no-op when nothing is selected.
+bind -T copy-mode-vi Up      send -X clear-selection \; send -X cursor-up
+bind -T copy-mode-vi Down    send -X clear-selection \; send -X cursor-down
+bind -T copy-mode-vi Left    send -X clear-selection \; send -X cursor-left
+bind -T copy-mode-vi Right   send -X clear-selection \; send -X cursor-right
+bind -T copy-mode-vi Home    send -X clear-selection \; send -X start-of-line
+bind -T copy-mode-vi End     send -X clear-selection \; send -X end-of-line
+bind -T copy-mode-vi C-Left  send -X clear-selection \; send -X previous-word
+bind -T copy-mode-vi C-Right send -X clear-selection \; send -X next-word
+
+# Shift + movement begins a selection on the first press and extends it on
+# the next (moving the cursor while a selection is active grows it) — the
+# shifted-arrow behaviour from nvim. selection_present tells us which.
+bind -T copy-mode-vi S-Up      if -F "#{selection_present}" "send -X cursor-up"      "send -X begin-selection ; send -X cursor-up"
+bind -T copy-mode-vi S-Down    if -F "#{selection_present}" "send -X cursor-down"    "send -X begin-selection ; send -X cursor-down"
+bind -T copy-mode-vi S-Left    if -F "#{selection_present}" "send -X cursor-left"    "send -X begin-selection ; send -X cursor-left"
+bind -T copy-mode-vi S-Right   if -F "#{selection_present}" "send -X cursor-right"   "send -X begin-selection ; send -X cursor-right"
+bind -T copy-mode-vi S-Home    if -F "#{selection_present}" "send -X start-of-line"  "send -X begin-selection ; send -X start-of-line"
+bind -T copy-mode-vi S-End     if -F "#{selection_present}" "send -X end-of-line"    "send -X begin-selection ; send -X end-of-line"
+bind -T copy-mode-vi C-S-Left  if -F "#{selection_present}" "send -X previous-word"  "send -X begin-selection ; send -X previous-word"
+bind -T copy-mode-vi C-S-Right if -F "#{selection_present}" "send -X next-word"      "send -X begin-selection ; send -X next-word"
+
+# Ctrl+C copies the selection to the system clipboard and exits (Ghostty
+# forwards Cmd+C as C-c; set-clipboard + OSC52 carry it up to Ghostty — same
+# path as the mouse-drag copy above). Enter also copies (tmux default).
+bind -T copy-mode-vi C-c send -X copy-selection-and-cancel
+# Esc deselects if there's a selection, else leaves copy-mode.
+bind -T copy-mode-vi Escape if -F "#{selection_present}" "send -X clear-selection" "send -X cancel"
+
+# Moving panes spatially with prefix + C-Arrow. Must unbind first — tmux's
+# defaults bind C-Arrow to resize-pane. We swap with the pane that is
+# physically in that direction via the `{dir-of}` pane targets (swap-pane -U/-D
+# only walk the pane-index list, so in a 2x2 they'd send the bottom-left pane
+# to the top-RIGHT instead of straight up). `-d` keeps the active pane on the
+# pane we just moved, so repeated presses keep walking the same pane along.
+# At an edge (no pane in that direction) the target doesn't resolve and it's
+# a harmless no-op.
 unbind C-Left
 unbind C-Right
-bind -r C-Left swap-pane -U
-bind -r C-Right swap-pane -D
+unbind C-Up
+unbind C-Down
+bind -r C-Left  swap-pane -d -t '{left-of}'
+bind -r C-Right swap-pane -d -t '{right-of}'
+bind -r C-Up    swap-pane -d -t '{up-of}'
+bind -r C-Down  swap-pane -d -t '{down-of}'
 
 # Move panes between windows
 bind-key / command-prompt -p "send pane to window:" "join-pane -v -t '%%'"

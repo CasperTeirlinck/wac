@@ -22,3 +22,23 @@ vim.opt.mousescroll = "ver:1,hor:1"
 -- the two: a small `ttimeoutlen` lets Esc fire ~immediately, while the
 -- larger `timeoutlen` keeps chord mappings comfortable.
 vim.opt.ttimeoutlen = 10
+
+-- Snappy clipboard. nvim's default macOS provider shells out to `pbcopy`
+-- on every yank/cut to the + register — a ~20ms process fork that makes
+-- C-x/C-c (which route through "+) feel laggy vs VSCode. Copy via OSC52
+-- instead: it just emits an escape sequence (no fork, instant), and reaches
+-- the system clipboard through tmux's `set-clipboard on` passthrough — the
+-- same path tmux's own mouse-drag copy uses. Paste still shells out (rare,
+-- and OSC52 read is unreliable). macOS-only so the Linux/WSL default
+-- provider (xclip/wl-clipboard) is left untouched.
+if vim.fn.has("mac") == 1 then
+  local osc52 = require("vim.ui.clipboard.osc52")
+  local function pbpaste()
+    return vim.fn.systemlist("pbpaste")
+  end
+  vim.g.clipboard = {
+    name = "osc52-copy/pbpaste",
+    copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
+    paste = { ["+"] = pbpaste, ["*"] = pbpaste },
+  }
+end

@@ -92,6 +92,37 @@ return {
       end,
     })
     opts.picker = opts.picker or {}
+
+    -- Ctrl/Cmd + Up/Down: scroll a picker's list a few lines at a time,
+    -- mirroring the viewport-scroll keymap used in normal buffers (see
+    -- config/keymaps.lua). This is what makes the chord scroll the left
+    -- explorer and right git_tree sidebars — they're snacks pickers, so
+    -- the global <C-Up>/<C-Down> normal-mode mapping doesn't reach their
+    -- list windows; the picker's own keymap layer does.
+    --
+    -- `list:scroll(±n)` shifts the view n lines and drags the selection
+    -- along (clamped into view) — the list analogue of <C-y>/<C-e>.
+    -- Snacks's built-in list_scroll_up/down jump by the window's `scroll`
+    -- option (~half the list height); we want the same small, steady step
+    -- as the editor, so we scroll a fixed few lines instead.
+    --
+    -- Bound on the LIST window only: focus lands on the list when you nav
+    -- into either sidebar (git-sidebar.lua bounces input → list), and the
+    -- INPUT window already binds <C-Up>/<C-Down> to search-history nav,
+    -- which we leave intact. Set at the global picker level so every
+    -- picker gets it, not just the two sidebars.
+    local picker_scroll_lines = 3
+    opts.picker.actions = vim.tbl_deep_extend("force", opts.picker.actions or {}, {
+      list_scroll_up_lines = function(picker) picker.list:scroll(-picker_scroll_lines) end,
+      list_scroll_down_lines = function(picker) picker.list:scroll(picker_scroll_lines) end,
+    })
+    opts.picker.win = opts.picker.win or {}
+    opts.picker.win.list = opts.picker.win.list or {}
+    opts.picker.win.list.keys = vim.tbl_deep_extend("force", opts.picker.win.list.keys or {}, {
+      ["<C-Up>"] = "list_scroll_up_lines",
+      ["<C-Down>"] = "list_scroll_down_lines",
+    })
+
     opts.picker.sources = opts.picker.sources or {}
     opts.picker.sources.notifications = vim.tbl_deep_extend("force",
       opts.picker.sources.notifications or {},

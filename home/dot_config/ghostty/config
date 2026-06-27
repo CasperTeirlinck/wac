@@ -23,6 +23,15 @@ keybind = cmd+arrow_right=csi:1;5C
 keybind = cmd+shift+arrow_left=csi:1;6D
 keybind = cmd+shift+arrow_right=csi:1;6C
 
+# Send Ctrl+Up/Down CSI sequences so nvim's <C-Up>/<C-Down> viewport
+# scroll fires from Cmd+Up/Down on macOS. Same Karabiner Cmd→Option
+# caveat as the word-motion binds above, so bind alt+ (primary) and
+# cmd+ (fallback).
+keybind = alt+arrow_up=csi:1;5A
+keybind = alt+arrow_down=csi:1;5B
+keybind = cmd+arrow_up=csi:1;5A
+keybind = cmd+arrow_down=csi:1;5B
+
 # Forward Cmd+C as Ctrl+C so nvim can map <C-c> to copy the nvim
 # selection (default ghostty behavior copies the terminal selection,
 # not the nvim selection). nvim's <C-c> mappings override what would
@@ -81,6 +90,13 @@ keybind = cmd+enter=csi:13;5u
 # nvim hover keymap. Cmd variant matches the cmd+enter fallback above.
 keybind = ctrl+shift+enter=csi:13;6u
 keybind = cmd+shift+enter=csi:13;6u
+
+# Ctrl+Space → CSI-u for <C-Space> so blink.cmp's manual completion trigger
+# fires. Terminals send a bare NUL for Ctrl+Space, which gets swallowed
+# (especially through tmux); the CSI-u form (32 = space, mod 5 = ctrl)
+# decodes to <C-Space> in nvim — same mechanism as ctrl+enter above. (cmd+space
+# is the OS Spotlight shortcut, so this is Ctrl+Space only.)
+keybind = ctrl+space=csi:32;5u
 
 # Allow OSC52 clipboard writes without prompting. tmux (`set-clipboard on`)
 # uses OSC52 to push mouse-drag selections into the macOS clipboard, including

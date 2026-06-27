@@ -157,15 +157,51 @@ map("i", "<S-End>", "<C-o>v$<C-g>", { desc = "Select to end of line" })
 -- Ghostty translates Cmd+arrow into the same CSI sequences on macOS.
 -- <Cmd>...<CR> stays in insert mode (no InsertLeave/Enter cycle), so
 -- completion plugins don't re-trigger on the cursor move.
+-- Right uses `e` (end of word), not `w` (start of NEXT word) — matches the
+-- traditional-editor "jump to end of the current word" feel; left stays `b`.
+-- In insert mode `e` leaves the caret *on* the last char (i.e. before it),
+-- so it reads as second-to-last; the trailing <Right> nudges the caret to
+-- sit just past the word's end, where you'd want to keep typing.
 map("i", "<C-Left>", "<Cmd>normal! b<CR>", { desc = "Move word left" })
-map("i", "<C-Right>", "<Cmd>normal! w<CR>", { desc = "Move word right" })
+map("i", "<C-Right>", "<Cmd>normal! e<CR><Right>", { desc = "Move to word end right" })
 -- Same word motion in normal & visual modes.
 map({ "n", "x" }, "<C-Left>", "b", { desc = "Move word left" })
-map({ "n", "x" }, "<C-Right>", "w", { desc = "Move word right" })
+map({ "n", "x" }, "<C-Right>", "e", { desc = "Move to word end right" })
 -- Word selection: enter Visual, extend by word, then toggle to Select
 -- mode so typing replaces the selection.
 map("i", "<C-S-Left>", "<C-o>vb<C-g>", { desc = "Select word left" })
 map("i", "<C-S-Right>", "<C-o>ve<C-g>", { desc = "Select word right" })
+
+-- Ctrl/Cmd + Up/Down: scroll the viewport. Routed through Neovim's mouse
+-- wheel path (nvim_input_mouse) rather than Vim's <C-y>/<C-e> count-scroll.
+-- The wheel path is what makes mouse scrolling glassy-smooth; <C-y>/<C-e>
+-- with a count drags the cursor in multi-line lurches at the scrolloff
+-- margin, which reads as jitter when a key is held. We aim the synthetic
+-- wheel at the cursor's screen position so it hits the focused window, and
+-- send a few notches per press for speed. `mousescroll` (options.lua,
+-- ver:1) sets lines per notch. Callback form works in every mode (no
+-- <C-o>), so insert mode scrolls without leaving insert.
+-- On macOS, Ghostty forwards Cmd+Up/Down as these Ctrl+Up/Down CSI
+-- sequences (see ghostty/config); on Linux they arrive natively.
+--
+-- NB: the big "delayed/replayed" jitter when holding this chord was NOT
+-- here — it was the tmux binding running `ps` per key-repeat to detect vim
+-- (see dot_tmux.conf.tmpl / dot_tmux.inner.conf, now format-based).
+local scroll_ticks = 3
+local function wheel(dir)
+  return function()
+    local row = vim.fn.screenrow() - 1
+    local col = vim.fn.screencol() - 1
+    for _ = 1, scroll_ticks do
+      vim.api.nvim_input_mouse("wheel", dir, "", 0, row, col)
+    end
+  end
+end
+map({ "n", "x", "i" }, "<C-Up>", wheel("up"), { desc = "Scroll up" })
+map({ "n", "x", "i" }, "<C-Down>", wheel("down"), { desc = "Scroll down" })
+
+-- `jk` exits insert mode (fast <Esc> without leaving the home row).
+map("i", "jk", "<Esc>", { desc = "Escape insert mode" })
 
 -- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C
 -- (\x03), so we bind <C-c> here. Cmd+V already pastes natively via
@@ -202,6 +238,12 @@ map("n", "<C-x>", '"+dd', { desc = "Cut line to clipboard" })
 map("x", "<C-x>", '"+d', { desc = "Cut selection to clipboard" })
 map("s", "<C-x>", '<C-g>"+d', { desc = "Cut selection to clipboard" })
 map("i", "<C-x>", '<Cmd>normal! "+dd<CR>', { desc = "Cut line to clipboard" })
+
+-- Ctrl+S: save. LazyVim's default is `<cmd>w<cr><esc>`, whose trailing <esc>
+-- kicks you out of insert mode on every save. `<Cmd>w<CR>` runs the write
+-- without changing mode, so saving from insert keeps you in insert (VSCode
+-- style). Ghostty forwards Cmd+S as Ctrl+S (see ghostty/config).
+map({ "n", "i", "x", "s" }, "<C-s>", "<Cmd>w<CR>", { desc = "Save file" })
 
 -- Ctrl+/ : toggle comment (VSCode-style). Karabiner swaps Cmd↔Ctrl so
 -- the macOS muscle-memory Cmd+/ lands here too. Drives Neovim's built-in
