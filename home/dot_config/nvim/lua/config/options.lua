@@ -21,7 +21,16 @@ vim.opt.mousescroll = "ver:1,hor:1"
 -- byte sequences like our <S-CR>/<C-CR> tmux passthroughs). Decouple
 -- the two: a small `ttimeoutlen` lets Esc fire ~immediately, while the
 -- larger `timeoutlen` keeps chord mappings comfortable.
-vim.opt.ttimeoutlen = 10
+--
+-- Not *too* small, though: terminal query/resize responses (e.g. the
+-- cursor-position report tmux relays on a `prefix-z` zoom) arrive as
+-- `\e[…`-led sequences, and at 10ms the `\e` was being parsed alone — its
+-- lone Esc dropped Select mode and the printable tail (`122H49`-style junk)
+-- leaked into the buffer, replacing the selection. 50ms lets these
+-- multi-byte responses reassemble into one (discarded) terminal code while
+-- still feeling instant on a real Esc press. Pairs with `escape-time 10`
+-- on the tmux side (~/.tmux.conf), which fixes the same split one layer up.
+vim.opt.ttimeoutlen = 50
 
 -- Snappy clipboard. nvim's default macOS provider shells out to `pbcopy`
 -- on every yank/cut to the + register — a ~20ms process fork that makes
@@ -41,4 +50,33 @@ if vim.fn.has("mac") == 1 then
     copy = { ["+"] = osc52.copy("+"), ["*"] = osc52.copy("*") },
     paste = { ["+"] = pbpaste, ["*"] = pbpaste },
   }
+end
+
+-- Work around a tmux bug (3.5a) when running under tmux with `extended-keys
+-- on`: tmux re-encodes the newlines *inside* a bracketed paste as extended-key
+-- sequences (ESC[27;<mod>;106~ = Ctrl+J, or …;13~ = Ctrl+M) instead of passing
+-- them through raw. nvim requests extended keys (for <C-CR>/<C-Space>/…), so a
+-- multi-line paste arrives as a single line with those literal escape
+-- sequences where the line breaks should be — verified by capturing the raw
+-- bytes nvim receives. A plain shell that doesn't request extended keys gets
+-- raw \n, which is why only nvim was affected. Ghostty alone (no tmux) also
+-- sends raw \n, so this decode is a no-op outside tmux.
+--
+-- Fix it in the paste handler: turn those sequences back into real newlines
+-- and re-split before nvim's default `vim.paste` lays the text into the
+-- buffer. Wrapping `vim.paste` is the documented hook for bracketed-paste
+-- content.
+do
+  local orig_paste = vim.paste
+  vim.paste = function(lines, phase)
+    local fixed = {}
+    for _, line in ipairs(lines) do
+      -- ESC[27;<mod>;13~ (CR) and ESC[27;<mod>;106~ (LF) → newline.
+      line = line:gsub("\27%[27;%d+;13~", "\n"):gsub("\27%[27;%d+;106~", "\n")
+      for _, part in ipairs(vim.split(line, "\n", { plain = true })) do
+        fixed[#fixed + 1] = part
+      end
+    end
+    return orig_paste(fixed, phase)
+  end
 end

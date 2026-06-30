@@ -44,19 +44,35 @@ vim.api.nvim_create_autocmd("ColorScheme", { callback = set_explorer_hls })
 
 -- Refresh the explorer picker on buffer change so the bold tracks focus.
 -- Skip when entering a snacks picker (would reset its cursor to top).
-vim.api.nvim_create_autocmd("BufEnter", {
-  callback = function()
-    if vim.bo.filetype:match("^snacks_picker") then
-      return
+--
+-- This used to fire `picker:find({ refresh = true })` synchronously on
+-- every BufEnter — which re-runs the finder (tree walk + matcher) every
+-- time. In huge repos (~100k files) that's the dominant cause of laggy
+-- window navigation and the occasional double-render.
+--
+-- Two guards now:
+--   1. Debounce: coalesce bursts of BufEnter (cycling tabs, jumping
+--      between windows) into a single refresh ~100 ms after motion stops.
+--   2. Dedupe: track the last "interesting" buffer file; skip the
+--      refresh entirely if it hasn't changed (entering a help/term/
+--      scratch buffer doesn't need a tree re-render).
+local refresh_timer = nil
+local last_refreshed_file = nil
+local function schedule_explorer_refresh()
+  if vim.bo.filetype:match("^snacks_picker") then return end
+  local file = vim.api.nvim_buf_get_name(0)
+  -- Empty path = `[No Name]` / scratch; nothing to track.
+  if file == "" or file == last_refreshed_file then return end
+  if refresh_timer then refresh_timer:stop(); refresh_timer:close() end
+  refresh_timer = vim.uv.new_timer()
+  refresh_timer:start(100, 0, vim.schedule_wrap(function()
+    refresh_timer:close(); refresh_timer = nil
+    last_refreshed_file = file
+    local ok, snacks = pcall(require, "snacks")
+    if not ok or not snacks.picker then return end
+    for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
+      pcall(p.find, p, { refresh = true })
     end
-    vim.schedule(function()
-      local ok, snacks = pcall(require, "snacks")
-      if not ok or not snacks.picker then
-        return
-      end
-      for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
-        pcall(p.find, p, { refresh = true })
-      end
-    end)
-  end,
-})
+  end))
+end
+vim.api.nvim_create_autocmd("BufEnter", { callback = schedule_explorer_refresh })
