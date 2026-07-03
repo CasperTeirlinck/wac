@@ -408,7 +408,11 @@ return {
       { "<leader>gt", leader_toggle,         desc = "Git: toggle tree sidebar" },
       { "<leader>gs", leader_stage,          desc = "Git: stage/unstage current file" },
       { "<leader>gr", leader_refresh,        desc = "Git: refresh tree sidebar" },
-      { "<leader>gd", leader_open_with_diff, desc = "Git: open file with diff vs HEAD" },
+      -- <leader>gD (capital), not gd: gd is diffview's open (plugins/merge.lua).
+      -- They previously both bound gd and clobbered each other nondeterministically
+      -- depending on lazy load order — which is why gd "sometimes" opened the
+      -- wrong thing and went missing from which-key.
+      { "<leader>gD", leader_open_with_diff, desc = "Git: open file with diff vs HEAD" },
       { "<leader>gx", leader_discard,        desc = "Git: discard changes (restore)" },
     },
     init = function()

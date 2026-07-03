@@ -4,9 +4,18 @@
     "type": "command",
     "command": "bash ~/.claude/statusline-command.sh"
   },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
+  },
   "enabledPlugins": {
     "posthog@claude-plugins-official": true,
-    "lua-lsp@claude-plugins-official": true
+    "lua-lsp@claude-plugins-official": true,
+    "ponytail@ponytail": true
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",

@@ -98,7 +98,13 @@ local function nav(dir)
     local cur_h = vim.api.nvim_win_get_height(cur)
 
     local best, best_dist = nil, math.huge
-    for _, w in ipairs(vim.api.nvim_list_wins()) do
+    -- Scope to the CURRENT tabpage only. nvim_list_wins() spans every
+    -- tabpage, so in a separate-tab layout (e.g. diffview) navigating toward
+    -- an edge would find a window in another tab and nvim_set_current_win
+    -- would jump there — silently switching tabpages and throwing you out of
+    -- the diffview tab. tabpage_list_wins(0) keeps nav within the current tab;
+    -- at a real edge it falls through to the multiplexer as intended.
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if w ~= cur and not siblings[w] and vim.api.nvim_win_is_valid(w) then
         local cfg = vim.api.nvim_win_get_config(w)
         -- Skip non-embedded floats (e.g. completion popups) but include
