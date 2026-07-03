@@ -47,7 +47,10 @@ in {
     pkgs.eyedropper
     pkgs.gh
     pkgs.claude-code
+    pkgs.rtk # CLI proxy that trims LLM token usage of common dev commands
     pkgs.imagemagick # SVG/PDF → raster for snacks.image previews in nvim
+    pkgs.mermaid-cli # `mmdc` — snacks.image renders ```mermaid blocks inline
+    pkgs.chromium # headless browser mmdc drives (see PUPPETEER_EXECUTABLE_PATH)
     (pkgs.nerd-fonts.fira-code)
 
     # # You can also create simple shell scripts directly inside your
@@ -78,6 +81,9 @@ in {
   # Home Manager can also manage your environment variables.
   home.sessionVariables = {
     # EDITOR = "emacs";
+    # NOTE: PUPPETEER_EXECUTABLE_PATH (which mmdc needs) is exported from the
+    # chezmoi zshrc (home/.zshrc_linux), not here — this repo's shell doesn't
+    # source home-manager's hm-session-vars.sh. chromium (above) is on PATH.
   };
 
   programs.git = {

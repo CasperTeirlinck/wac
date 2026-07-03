@@ -82,6 +82,10 @@ if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
   . "$HOME/.nix-profile/etc/profile.d/nix.sh";
 fi
 
+# mermaid-cli (mmdc, via nix) ships no browser; point puppeteer at Brave
+# (homebrew cask) so snacks.image can render ```mermaid blocks in nvim.
+export PUPPETEER_EXECUTABLE_PATH="/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+
 # Completion: Enable hidden files in cd completion, but without ./ and ../
 _comp_options+=(globdots)
 zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'
