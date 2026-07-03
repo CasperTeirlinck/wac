@@ -481,6 +481,12 @@ return {
           local ok, snacks = pcall(require, "snacks")
           if not ok or not snacks.picker then return end
           for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
+            -- Preserve cursor/top across the re-find, else the tree
+            -- jumps back to the top on every save / focus-gain. Same
+            -- pattern as open_file's folder-toggle and git_tree_stage.
+            if p.list and p.list.set_target then
+              pcall(p.list.set_target, p.list)
+            end
             pcall(p.find, p)
           end
         end, 250)

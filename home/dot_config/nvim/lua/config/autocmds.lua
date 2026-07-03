@@ -21,11 +21,20 @@
 
 -- Tone down indent guides: very dim by default, slightly brighter for
 -- the focused scope. Overrides snacks's defaults (which inherit from
--- the colorscheme and end up red on onedark).
+-- the colorscheme and end up red on onedark). Values track the active
+-- theme (vim.g.theme_mode, set by plugins/custom.lua): the dark greys
+-- would be harsh dark lines on the light background, so light mode uses
+-- light greys. Re-runs on ColorScheme, so <leader>ut refreshes these too.
 local function set_indent_hls()
-  vim.api.nvim_set_hl(0, "SnacksIndent", { fg = "#2c313a" })
-  vim.api.nvim_set_hl(0, "SnacksIndentScope", { fg = "#4b5263" })
-  vim.api.nvim_set_hl(0, "SnacksIndentChunk", { fg = "#4b5263" })
+  local indent, scope
+  if vim.g.theme_mode == "light" then
+    indent, scope = "#e1e2e6", "#c6c8cc"
+  else
+    indent, scope = "#2c313a", "#4b5263"
+  end
+  vim.api.nvim_set_hl(0, "SnacksIndent", { fg = indent })
+  vim.api.nvim_set_hl(0, "SnacksIndentScope", { fg = scope })
+  vim.api.nvim_set_hl(0, "SnacksIndentChunk", { fg = scope })
 end
 set_indent_hls()
 vim.api.nvim_create_autocmd("ColorScheme", { callback = set_indent_hls })
@@ -70,8 +79,20 @@ local function schedule_explorer_refresh()
     last_refreshed_file = file
     local ok, snacks = pcall(require, "snacks")
     if not ok or not snacks.picker then return end
+    -- Use the explorer's own update action rather than a bare
+    -- `find({ refresh = true })`: the latter re-runs the finder (which
+    -- recomputes our bold "current file" highlight) but leaves the
+    -- cursor at the top. `Actions.update` re-runs the finder AND reveals
+    -- `target` when done, so the tree stays parked on the open file.
+    -- This also makes us order-independent vs snacks's own scheduled
+    -- `follow_file` reveal (the debounce here used to lose that race).
+    local uok, Actions = pcall(require, "snacks.explorer.actions")
     for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
-      pcall(p.find, p, { refresh = true })
+      if uok then
+        pcall(Actions.update, p, { target = file, refresh = true })
+      else
+        pcall(p.find, p, { refresh = true })
+      end
     end
   end))
 end
