@@ -42,6 +42,32 @@ end
 set_explorer_hls()
 vim.api.nvim_create_autocmd("ColorScheme", { callback = set_explorer_hls })
 
+-- Diffview's file-panel tree colors folder names with `Directory` (blue),
+-- which clashes with the explorer where we flattened folders to the normal
+-- text color (SnacksPickerDirectory -> SnacksPickerFile above). Match that:
+-- link DiffviewFolderName to Normal so the file tree reads as plain text.
+-- Diffview applies its own links with `default = true`, so an explicit set
+-- here wins regardless of load/ColorScheme ordering.
+local function set_diffview_hls()
+  vim.api.nvim_set_hl(0, "DiffviewFolderName", { link = "Normal" })
+  -- Folder icon defaults to `PreProc` (purple); the explorer uses the blue
+  -- `Directory` color for folder icons. Match it.
+  vim.api.nvim_set_hl(0, "DiffviewFolderSign", { link = "Directory" })
+  -- The open/selected file defaults to `Type` (yellow text). Match the
+  -- explorer's active-file style instead: bold text on the grey selection
+  -- bg. Pull the grey from Visual so it tracks the theme — the same source
+  -- snacks.lua uses for its picker CursorLine.
+  local visual = vim.api.nvim_get_hl(0, { name = "Visual", link = false })
+  local bg = visual.bg and string.format("#%06x", visual.bg) or "#3b3f4c"
+  vim.api.nvim_set_hl(0, "DiffviewFilePanelSelected", { bold = true, bg = bg })
+  -- Reviewed-file markers (see merge.lua): green ✓ glyph + a dimmed filename
+  -- so reviewed entries recede, GitHub-"viewed" style.
+  vim.api.nvim_set_hl(0, "DiffviewReviewedSign", { link = "DiffviewFilePanelInsertions" })
+  vim.api.nvim_set_hl(0, "DiffviewReviewed", { link = "Comment" })
+end
+set_diffview_hls()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = set_diffview_hls })
+
 -- Refresh the explorer picker on buffer change so the bold tracks focus.
 -- Skip when entering a snacks picker (would reset its cursor to top).
 vim.api.nvim_create_autocmd("BufEnter", {
