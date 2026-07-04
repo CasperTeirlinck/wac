@@ -65,16 +65,8 @@ local function invalidate_status_cache()
   status_cache.files = nil
 end
 
-local function read_git_status(cwd)
-  if status_cache.cwd == cwd and status_cache.files then
-    return status_cache.files
-  end
-  local quoted = "'" .. cwd:gsub("'", "'\\''") .. "'"
-  local handle = io.popen("git -C " .. quoted .. " status --porcelain=v1 --untracked-files=all 2>/dev/null")
-  if not handle then return {} end
-  local output = handle:read("*a") or ""
-  handle:close()
-  local out = vim.split(output, "\n", { trimempty = true })
+local function parse_git_status(output)
+  local out = vim.split(output or "", "\n", { trimempty = true })
   local files = {}
   for _, line in ipairs(out) do
     if #line >= 3 then
@@ -86,9 +78,45 @@ local function read_git_status(cwd)
       files[path] = status
     end
   end
+  return files
+end
+
+local function read_git_status(cwd)
+  if status_cache.cwd == cwd and status_cache.files then
+    return status_cache.files
+  end
+  local quoted = "'" .. cwd:gsub("'", "'\\''") .. "'"
+  local handle = io.popen("git -C " .. quoted .. " status --porcelain=v1 --untracked-files=all 2>/dev/null")
+  if not handle then return {} end
+  local output = handle:read("*a") or ""
+  handle:close()
+  local files = parse_git_status(output)
   status_cache.cwd = cwd
   status_cache.files = files
   return files
+end
+
+-- Async status fetch: runs `git status` off the main loop, fills the
+-- cache, then invokes `cb`. The event-driven refresh (save / focus-gain)
+-- uses this instead of the blocking io.popen so a slow `git status`
+-- (huge working trees — e.g. ~1s in ov-dp3-data-projects) can't freeze
+-- the UI. read_git_status stays as the synchronous cache-miss fallback
+-- for user-initiated finds (initial open, folder toggles), which read
+-- the warm cache this fills.
+local function fetch_git_status_async(cwd, cb)
+  local ok = pcall(vim.system,
+    { "git", "-C", cwd, "status", "--porcelain=v1", "--untracked-files=all" },
+    { text = true },
+    vim.schedule_wrap(function(res)
+      status_cache.cwd = cwd
+      status_cache.files = parse_git_status(res and res.code == 0 and res.stdout or "")
+      if cb then cb() end
+    end))
+  -- Fallback for older nvim without vim.system: block once (rare path).
+  if not ok then
+    read_git_status(cwd)
+    if cb then cb() end
+  end
 end
 
 -- Custom finder: builds a tree of git-changed files with parent dirs.
@@ -481,18 +509,24 @@ return {
         end
         refresh_timer = vim.defer_fn(function()
           refresh_timer = nil
-          invalidate_status_cache()
-          local ok, snacks = pcall(require, "snacks")
-          if not ok or not snacks.picker then return end
-          for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
-            -- Preserve cursor/top across the re-find, else the tree
-            -- jumps back to the top on every save / focus-gain. Same
-            -- pattern as open_file's folder-toggle and git_tree_stage.
-            if p.list and p.list.set_target then
-              pcall(p.list.set_target, p.list)
+          -- Fetch git status ASYNC, then re-find from the now-warm cache.
+          -- The old path invalidated the cache and called find(), which
+          -- ran a blocking io.popen `git status` on the UI thread —
+          -- ~1s freeze on save in large repos. Now the git call is off
+          -- the main loop and find() just reads the cache it filled.
+          fetch_git_status_async(vim.fn.getcwd(), function()
+            local ok, snacks = pcall(require, "snacks")
+            if not ok or not snacks.picker then return end
+            for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
+              -- Preserve cursor/top across the re-find, else the tree
+              -- jumps back to the top on every save / focus-gain. Same
+              -- pattern as open_file's folder-toggle and git_tree_stage.
+              if p.list and p.list.set_target then
+                pcall(p.list.set_target, p.list)
+              end
+              pcall(p.find, p)
             end
-            pcall(p.find, p)
-          end
+          end)
         end, 250)
       end
       vim.api.nvim_create_autocmd(

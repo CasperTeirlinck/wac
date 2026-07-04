@@ -197,6 +197,13 @@ return {
               -- normal mode here). Don't reuse exit_search — that one
               -- calls toggle_focus, which would flip you to the input.
               ["<Esc>"] = { function() end, mode = { "n" } },
+              -- Toggle git-ignored / hidden files on demand. These are
+              -- snacks explorer defaults, pinned here explicitly so they
+              -- survive our custom key overrides. `ignored` defaults off
+              -- (fast in huge repos); press I to reveal .env / build
+              -- artifacts / .venv when you need them, I again to hide.
+              ["I"] = "toggle_ignored",
+              ["H"] = "toggle_hidden",
             },
           },
         },
