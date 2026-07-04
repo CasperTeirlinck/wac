@@ -70,6 +70,7 @@ in {
         "beads"
         "dolt"
         "argocd"
+        "rtk"
         # system utils
         # "scroll-reverser"
     ];

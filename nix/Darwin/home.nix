@@ -17,7 +17,16 @@ in {
     # on text-heavy SVGs (Mermaid diagrams etc.) with `unable to read font ''`.
     # nixpkgs's build includes pangocairo + rsvg + fontconfig delegates.
     pkgs.imagemagick
+    # `mmdc` — snacks.image's convert.mermaid recipe shells out to it to
+    # turn ```mermaid code blocks into SVG, which imagemagick then rasters
+    # for inline rendering in markdown buffers (Ghostty kitty graphics).
+    pkgs.mermaid-cli
   ];
+
+  # NOTE: mmdc needs a Chromium at runtime (PUPPETEER_EXECUTABLE_PATH) — the
+  # nixpkgs build ships none. That env var is exported from the chezmoi
+  # zshrc (home/.zshrc_darwin), since this repo's shell doesn't source
+  # home-manager's hm-session-vars.sh.
 
   home.file = {
   };

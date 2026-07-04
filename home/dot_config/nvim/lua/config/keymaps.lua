@@ -51,8 +51,46 @@ local function picker_sibling_wins(cur_win)
   return set
 end
 
+-- Neovim's mode is global, not per-window. Switching windows while a
+-- Visual/Select selection is live drags that selection into the target
+-- window, where it re-anchors from a meaningless cursor position and
+-- highlights garbage (e.g. landing in the explorer selects a block of its
+-- tree). So before a window switch we drop to normal mode — which records
+-- the selection in the buffer's '< / '> marks — and remember the window we
+-- left. The WinEnter autocmd below reselects it with `gv` the moment focus
+-- returns to that window, so the selection is *preserved*, not lost: it
+-- just steps aside while you're away and snaps back when you come home.
+local pending_reselect = nil
+
+local function preserve_visual_select()
+  local m = vim.fn.mode()
+  -- v / V / <C-v> / s / S / <C-s>
+  if m == "v" or m == "V" or m == "\22" or m == "s" or m == "S" or m == "\19" then
+    pending_reselect = vim.api.nvim_get_current_win()
+    vim.cmd("normal! \27")
+  end
+end
+
+vim.api.nvim_create_autocmd("WinEnter", {
+  callback = function()
+    if not pending_reselect then return end
+    local win = vim.api.nvim_get_current_win()
+    if win ~= pending_reselect then return end
+    pending_reselect = nil
+    -- Schedule so the window switch fully settles before reselecting; `gv`
+    -- restores the last visual selection of this buffer. pcall guards the
+    -- case where the marks are no longer valid (buffer changed under us).
+    vim.schedule(function()
+      if vim.api.nvim_get_current_win() == win then
+        pcall(vim.cmd, "normal! gv")
+      end
+    end)
+  end,
+})
+
 local function nav(dir)
   return function()
+    preserve_visual_select()
     local cur = vim.api.nvim_get_current_win()
     local siblings = picker_sibling_wins(cur)
     local cur_pos = vim.api.nvim_win_get_position(cur)
@@ -60,7 +98,13 @@ local function nav(dir)
     local cur_h = vim.api.nvim_win_get_height(cur)
 
     local best, best_dist = nil, math.huge
-    for _, w in ipairs(vim.api.nvim_list_wins()) do
+    -- Scope to the CURRENT tabpage only. nvim_list_wins() spans every
+    -- tabpage, so in a separate-tab layout (e.g. diffview) navigating toward
+    -- an edge would find a window in another tab and nvim_set_current_win
+    -- would jump there — silently switching tabpages and throwing you out of
+    -- the diffview tab. tabpage_list_wins(0) keeps nav within the current tab;
+    -- at a real edge it falls through to the multiplexer as intended.
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if w ~= cur and not siblings[w] and vim.api.nvim_win_is_valid(w) then
         local cfg = vim.api.nvim_win_get_config(w)
         -- Skip non-embedded floats (e.g. completion popups) but include

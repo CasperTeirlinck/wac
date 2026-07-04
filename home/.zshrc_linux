@@ -67,6 +67,10 @@ command -v conveyor >/dev/null 2>&1 && conveyor completion zsh > ~/.zfunc/_conve
 command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
 [ -f ~/.nix-profile/etc/profile.d/nix.sh ] && source ~/.nix-profile/etc/profile.d/nix.sh
 
+# mermaid-cli (mmdc, via nix) ships no browser; point puppeteer at the nix
+# chromium (also in home.packages) so snacks.image can render ```mermaid blocks.
+command -v chromium >/dev/null 2>&1 && export PUPPETEER_EXECUTABLE_PATH="$(command -v chromium)"
+
 # Completion: Enable hidden files in cd completion, but without ./ and ../
 _comp_options+=(globdots)
 zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'

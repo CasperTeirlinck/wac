@@ -55,8 +55,8 @@ for key     kcap   seq        mode   widget (
     # csright x      $'\E[1;6C' select   forward-word
     # csend   x      $'\E[1;6F' select   end-of-line
     # cshome  x      $'\E[1;6H' select   beginning-of-line
-    # cleft   x      $'\E[1;5D' deselect backward-word
-    # cright  x      $'\E[1;5C' deselect forward-word
+    cleft   x      $'\E[1;5D' deselect backward-word
+    cright  x      $'\E[1;5C' deselect forward-word
     {{ else if eq .chezmoi.os "linux" }}
     csleft  x      $'\E[1;6D' select   backward-word
     csright x      $'\E[1;6C' select   forward-word

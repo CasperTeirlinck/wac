@@ -1,5 +1,7 @@
 {{ if ne .chezmoi.os "darwin" }}
 Library/KeyBindings/DefaultKeyBinding.dict
+{{/* macOS rtk reads ~/Library/Application Support/rtk; symlink it to the XDG copy. Linux uses ~/.config/rtk directly. */}}
+Library/Application Support/rtk
 {{ end }}
 
 {{ if ne .chezmoi.os "linux" }}

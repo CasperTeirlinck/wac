@@ -23,7 +23,13 @@ is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
 # zero subprocesses — so a held key stays cheap. Use with `if-shell -F`.
 is_vim_or_inner_f="#{m/ri:^(g?(view|l?n?vim?x?)(diff)?|tmux(:.*)?)$,#{pane_current_command}}"
 
-set -s escape-time 1
+# Low but non-zero: at 1ms tmux forwards a lone Esc before the rest of a
+# multi-byte sequence arrives, so terminal query/resize *responses* (e.g.
+# the cursor-position report tmux relays on a `prefix-z` zoom) get split —
+# the printable tail then leaks into the pane and, in nvim Select mode,
+# replaces the selection. 10ms keeps such sequences intact without making
+# Esc feel laggy.
+set -s escape-time 10
 
 # Forward terminal focus events so nvim's FocusGained/FocusLost fire when
 # switching between tmux panes (needed for the nvim git sidebar to refresh

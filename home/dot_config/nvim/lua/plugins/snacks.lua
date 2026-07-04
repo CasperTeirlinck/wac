@@ -132,7 +132,14 @@ return {
       opts.picker.sources.explorer or {},
       {
         hidden = true,
-        ignored = true,
+        -- Don't list git-ignored files. In big repos these are the bulk
+        -- of the working tree (Python .venv, __pycache__, build output —
+        -- e.g. ov-dp3-data-projects has 283k ignored files / 6.1G), and
+        -- listing them makes the explorer's tree walk + git-status
+        -- enumeration re-run over all of them on every refresh, which is
+        -- the dominant source of save/movement lag. hidden=true still
+        -- shows non-ignored dotfiles (.github, .gitignore, etc.).
+        ignored = false,
         -- Custom layout: list first (so the file tree starts at the
         -- very top of the sidebar), input pinned to the bottom as a
         -- single borderless row. We can't use snacks's `auto_hide` /
@@ -190,6 +197,13 @@ return {
               -- normal mode here). Don't reuse exit_search — that one
               -- calls toggle_focus, which would flip you to the input.
               ["<Esc>"] = { function() end, mode = { "n" } },
+              -- Toggle git-ignored / hidden files on demand. These are
+              -- snacks explorer defaults, pinned here explicitly so they
+              -- survive our custom key overrides. `ignored` defaults off
+              -- (fast in huge repos); press I to reveal .env / build
+              -- artifacts / .venv when you need them, I again to hide.
+              ["I"] = "toggle_ignored",
+              ["H"] = "toggle_hidden",
             },
           },
         },
