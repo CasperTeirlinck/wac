@@ -5,41 +5,44 @@ set -euo pipefail
 #   dest_name empty  -> copy contents of sparse_path into ./skills/
 #   dest_name set    -> copy sparse_path itself to ./skills/<dest_name>/
 SOURCES=(
-	"https://github.com/jgraph/drawio-mcp.git|skill-cli/drawio|drawio"
-	"https://github.com/mattpocock/skills.git|skills/productivity/grill-me|grill-me"
-	"https://github.com/mattpocock/skills.git|skills/engineering/grill-with-docs|grill-with-docs"
-	"https://github.com/mattpocock/skills.git|skills/productivity/handoff|handoff"
+  "https://github.com/jgraph/drawio-mcp.git|plugins/claude-code/skills/drawio|drawio"
+  "https://github.com/mattpocock/skills.git|skills/productivity/grill-me|grill-me"
+  "https://github.com/mattpocock/skills.git|skills/productivity/grilling|grilling"
+  "https://github.com/mattpocock/skills.git|skills/engineering/domain-modeling|domain-modeling"
+  "https://github.com/mattpocock/skills.git|skills/engineering/grill-with-docs|grill-with-docs"
+  "https://github.com/mattpocock/skills.git|skills/productivity/handoff|handoff"
+  "https://github.com/mattpocock/skills.git|skills/productivity/writing-great-skills|writing-great-skills"
 )
 
 TMP_DIR=""
 cleanup() {
-	if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
-		rm -rf "$TMP_DIR"
-	fi
+  if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
+    rm -rf "$TMP_DIR"
+  fi
 }
 trap cleanup EXIT
 
 mkdir -p "./skills"
 
 for entry in "${SOURCES[@]}"; do
-	IFS='|' read -r repo sparse_path dest_name <<<"$entry"
+  IFS='|' read -r repo sparse_path dest_name <<<"$entry"
 
-	if TMP_DIR="$(mktemp -d 2>/dev/null)"; then
-		:
-	else TMP_DIR="$(mktemp -d -t get_skills)"; fi
+  if TMP_DIR="$(mktemp -d 2>/dev/null)"; then
+    :
+  else TMP_DIR="$(mktemp -d -t get_skills)"; fi
 
-	git clone --depth 1 --filter=blob:none --sparse "$repo" "$TMP_DIR"
-	(cd "$TMP_DIR" && git sparse-checkout set "$sparse_path")
+  git clone --depth 1 --filter=blob:none --sparse "$repo" "$TMP_DIR"
+  (cd "$TMP_DIR" && git sparse-checkout set "$sparse_path")
 
-	if [[ -z "$dest_name" ]]; then
-		cp -R "$TMP_DIR/$sparse_path/." "./skills/"
-	else
-		mkdir -p "./skills/$dest_name"
-		cp -R "$TMP_DIR/$sparse_path/." "./skills/$dest_name/"
-	fi
+  if [[ -z "$dest_name" ]]; then
+    cp -R "$TMP_DIR/$sparse_path/." "./skills/"
+  else
+    mkdir -p "./skills/$dest_name"
+    cp -R "$TMP_DIR/$sparse_path/." "./skills/$dest_name/"
+  fi
 
-	rm -rf "$TMP_DIR"
-	TMP_DIR=""
+  rm -rf "$TMP_DIR"
+  TMP_DIR=""
 done
 
 # Apply user-owned skill preference overlays.
@@ -47,16 +50,16 @@ done
 # ./skills/<skill>/SKILL.md after the base skill is fetched.
 PREFS_DIR="./skill-preferences"
 if [[ -d "$PREFS_DIR" ]]; then
-	for pref in "$PREFS_DIR"/*.md; do
-		[[ -f "$pref" ]] || continue
-		name="$(basename "$pref" .md)"
-		skill_md="./skills/$name/SKILL.md"
-		if [[ -f "$skill_md" ]]; then
-			printf '\n' >>"$skill_md"
-			cat "$pref" >>"$skill_md"
-			echo "Applied overlay: $pref -> $skill_md"
-		else
-			echo "Skipping overlay $pref (no matching SKILL.md at $skill_md)"
-		fi
-	done
+  for pref in "$PREFS_DIR"/*.md; do
+    [[ -f "$pref" ]] || continue
+    name="$(basename "$pref" .md)"
+    skill_md="./skills/$name/SKILL.md"
+    if [[ -f "$skill_md" ]]; then
+      printf '\n' >>"$skill_md"
+      cat "$pref" >>"$skill_md"
+      echo "Applied overlay: $pref -> $skill_md"
+    else
+      echo "Skipping overlay $pref (no matching SKILL.md at $skill_md)"
+    fi
+  done
 fi

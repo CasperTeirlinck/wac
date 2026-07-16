@@ -1,5 +1,12 @@
 alias assume="source assume"
 
+# mise shims on PATH for every shell, including non-interactive /bin/sh
+# subprocesses (e.g. Claude Code plugin hooks) and GUI-launched processes.
+# `mise activate` in .zshrc only runs for interactive shells and bakes in
+# version-specific install dirs that go stale when a tool is upgraded under a
+# long-running process; shims resolve the active version at exec time.
+export PATH="$HOME/.local/share/mise/shims:$PATH"
+
 # Force snacks.image (in nvim) to detect Ghostty when wrapped in tmux. The
 # inner tmux's client_termname is `screen-256color` (inherited from the outer
 # tmux's `default-terminal`), so snacks's normal detection fails for any nvim
