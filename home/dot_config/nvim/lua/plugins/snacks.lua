@@ -1,3 +1,36 @@
+-- The explorer `format` fn (further down) runs once PER ROW, PER RENDER. It
+-- needs the "most-recently-active file" to draw that row bold — but computing
+-- it there (getbufinfo + sort + name lookups) meant ~N× full buffer
+-- enumeration on every cursor move in the sidebar (N = visible rows). That's a
+-- real per-keystroke cost, and it's exactly the per-move redraw work that a
+-- slow terminal renderer (Windows Terminal) can't keep up with, so the sidebar
+-- feels laggy/backed-up when you hold a movement key.
+--
+-- The active file only changes on buffer switch, so compute it once and cache;
+-- invalidate on BufEnter. Scrolling the sidebar fires no BufEnter, so every
+-- per-row format call hits the cache. Value is the *normalized* path (or nil)
+-- so the per-row compare below doesn't re-normalize `current` each time either.
+local af_valid, af_value = false, nil
+local function active_file()
+  if not af_valid then
+    af_valid = true
+    af_value = nil
+    local buffers = vim.fn.getbufinfo({ buflisted = 1 })
+    table.sort(buffers, function(a, b) return a.lastused > b.lastused end)
+    for _, b in ipairs(buffers) do
+      if vim.bo[b.bufnr].buftype == "" then
+        local name = vim.api.nvim_buf_get_name(b.bufnr)
+        if name ~= "" then
+          af_value = vim.fs.normalize(name)
+          break
+        end
+      end
+    end
+  end
+  return af_value
+end
+vim.api.nvim_create_autocmd("BufEnter", { callback = function() af_valid = false end })
+
 return {
   "folke/snacks.nvim",
   opts = function(_, opts)
@@ -238,19 +271,11 @@ return {
               end
             end
           end
-          local function active_file()
-            local buffers = vim.fn.getbufinfo({ buflisted = 1 })
-            table.sort(buffers, function(a, b) return a.lastused > b.lastused end)
-            for _, b in ipairs(buffers) do
-              if vim.bo[b.bufnr].buftype == "" then
-                local name = vim.api.nvim_buf_get_name(b.bufnr)
-                if name ~= "" then return name end
-              end
-            end
-          end
+          -- active_file() is cached at module scope (see top of file) and
+          -- returns an already-normalized path, so this is cheap per row.
           local current = active_file()
           if item.file and current
-              and vim.fs.normalize(item.file) == vim.fs.normalize(current) then
+              and vim.fs.normalize(item.file) == current then
             for _, hl in ipairs(result) do
               -- The filename's highlight could be SnacksPickerFile OR a
               -- SnacksPickerGitStatus* if the file has git changes. Swap

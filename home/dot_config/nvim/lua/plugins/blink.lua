@@ -33,21 +33,22 @@ return {
   {
     "saghen/blink.cmp",
     opts = {
+      -- "super-tab": <Tab> accepts the selected completion; <CR> is left
+      -- unbound so Enter is ALWAYS a newline, never an accept. Up/Down select.
+      -- This is what stops markdown Enter from eating the popup instead of
+      -- inserting a line.
       keymap = {
-        preset = "enter",
-        ["<Up>"] = { "select_prev", "fallback" },
-        ["<Down>"] = { "select_next", "fallback" },
+        preset = "super-tab",
       },
-      -- <C-Space> = manual trigger (from the "enter" preset). The auto-popup
-      -- is gated by should_auto_show so it stays quiet in prose/comments/strings.
+      -- <C-Space> = manual trigger. The auto-popup is gated by should_auto_show
+      -- so it stays quiet in prose/comments/strings.
       completion = {
         menu = { auto_show = should_auto_show },
       },
       cmdline = {
+        -- Same rule in the cmdline: <Tab> accepts, <CR> runs the command.
         keymap = {
-          preset = "enter",
-          ["<Up>"] = { "select_prev", "fallback" },
-          ["<Down>"] = { "select_next", "fallback" },
+          preset = "super-tab",
         },
         completion = { menu = { auto_show = true } },
       },
