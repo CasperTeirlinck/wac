@@ -2,6 +2,23 @@
 -- Default options that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/options.lua
 -- Add any additional options here
 
+-- Disable the remote-plugin provider hosts (python3/ruby/perl/node). These
+-- exist only to run *remote plugins* written in those languages; LazyVim and
+-- our plugin set use none, so the providers are pure overhead. Disabling them:
+--   * Removes neovim's synchronous provider probe (python's detect_by_module
+--     shells out and `vim.system():wait()`s the first time anything calls
+--     `has('python3')` — e.g. during filetype detection). That `:wait()`
+--     pumps the event loop, so an unrelated async error (a transient mason
+--     ENOTCONN mid-install) could get re-raised *through* the probe as a
+--     scary lua_error stacktrace on file open. No probe → no such surfacing.
+--   * Silences the provider warnings in `:checkhealth` and trims startup.
+-- Re-enable a specific one (set to 1 + point host_prog at an interpreter with
+-- the pynvim/neovim package) only if you ever adopt a remote plugin for it.
+vim.g.loaded_python3_provider = 0
+vim.g.loaded_ruby_provider = 0
+vim.g.loaded_perl_provider = 0
+vim.g.loaded_node_provider = 0
+
 -- Non-vim-style selection: shifted special keys start Select mode where
 -- typing a printable character replaces the selection.
 vim.opt.keymodel = "startsel,stopsel"
@@ -31,6 +48,19 @@ vim.opt.mousescroll = "ver:1,hor:1"
 -- still feeling instant on a real Esc press. Pairs with `escape-time 10`
 -- on the tmux side (~/.tmux.conf), which fixes the same split one layer up.
 vim.opt.ttimeoutlen = 50
+
+-- Don't sync the unnamed register with the system clipboard. LazyVim defaults
+-- `clipboard = "unnamedplus"` (outside SSH), which routes *every* yank AND
+-- delete/change through the `+` register — so deleting a selection (e.g.
+-- Backspace over a Select-mode selection) copies the deleted text to the
+-- system clipboard via the OSC52 provider below. We do clipboard access
+-- explicitly instead (<C-c>/<C-x>/<C-v> use `"+` in keymaps.lua), so implicit
+-- sync is pure surprise. Empty `clipboard` keeps deletes/yanks in vim's
+-- registers only; the `+` register (and OSC52) is touched solely by our maps.
+--
+-- Must be set here: LazyVim loads this file, then stashes `clipboard` and
+-- restores it on VeryLazy (config/init.lua) — stashing "" means it restores "".
+vim.opt.clipboard = ""
 
 -- Snappy clipboard. nvim's default macOS provider shells out to `pbcopy`
 -- on every yank/cut to the + register — a ~20ms process fork that makes
@@ -80,3 +110,13 @@ do
     return orig_paste(fixed, phase)
   end
 end
+
+-- Disable Vim's built-in SQL ftplugin default keymaps. In SQL buffers it
+-- maps a pile of insert-mode omni-completion keys, including <C-Right> ->
+-- sqlcomplete#DrillIntoTable() and <C-Left> -> DrillOutOfColumns(). That
+-- hijacks Ctrl+arrow word-movement in insert mode and throws
+-- `E117: Unknown function: sqlcomplete#DrillIntoTable` on every press. We
+-- complete via blink.cmp, so none of these legacy maps are wanted. Must be
+-- set before ftplugin/sql.vim runs (options.lua loads before any FileType).
+-- Syntax and indent are unaffected.
+vim.g.omni_sql_no_default_maps = 1

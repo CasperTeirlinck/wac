@@ -33,6 +33,16 @@ vim.api.nvim_create_autocmd("BufEnter", { callback = function() af_valid = false
 
 return {
   "folke/snacks.nvim",
+  -- LazyVim's snacks-picker extra binds <leader>gd to Snacks.picker.git_diff
+  -- ("Git Diff (hunks)"). We want <leader>gd to be diffview's DiffviewOpen
+  -- (plugins/merge.lua) instead. Because the two mappings live on different
+  -- plugins, lazy.nvim's load order picked the winner nondeterministically
+  -- (inconsistent between nvim starts). Disabling the snacks one here — same
+  -- plugin, so lazy merges and drops it — leaves diffview's as the only
+  -- <leader>gd, deterministically.
+  keys = {
+    { "<leader>gd", false },
+  },
   opts = function(_, opts)
     opts.dashboard = vim.tbl_deep_extend("force", opts.dashboard or {}, { enabled = false })
     -- Inline image previews via Kitty graphics protocol (Ghostty supports it
@@ -213,6 +223,24 @@ return {
             end
             require("snacks.picker.actions").toggle_focus(picker)
           end,
+          -- <C-S-f> from inside the explorer greps *scoped to the tree
+          -- item under the cursor* instead of the whole project. Global
+          -- keymaps don't reach the picker's list window (see the C-Up/Down
+          -- note above), so the scoped variant lives here on the picker's
+          -- own keymap layer; the global <C-S-f> (config/keymaps.lua) still
+          -- greps the whole cwd from anywhere else.
+          --
+          -- `picker:dir()` = the item's own path when it's a directory, else
+          -- the directory containing it — so it works whether you land on a
+          -- folder or a file. `dirs = { dir }` makes the grep search that
+          -- path only.
+          explorer_grep = function(picker)
+            local dir = picker:dir()
+            require("snacks").picker.grep({
+              dirs = { dir },
+              title = "Grep in " .. vim.fn.fnamemodify(dir, ":~:."),
+            })
+          end,
         },
         win = {
           input = {
@@ -221,6 +249,8 @@ return {
               -- the list. We explicitly do NOT call cancel/close — the
               -- sidebar is pinned and <Esc> must never destroy it.
               ["<Esc>"] = { "exit_search", mode = { "i", "n" } },
+              -- Grep scoped to the item under the cursor (see explorer_grep).
+              ["<C-S-f>"] = { "explorer_grep", mode = { "i", "n" } },
             },
           },
           list = {
@@ -237,6 +267,10 @@ return {
               -- artifacts / .venv when you need them, I again to hide.
               ["I"] = "toggle_ignored",
               ["H"] = "toggle_hidden",
+              -- Grep scoped to the tree item under the cursor: select a
+              -- folder (or file) and <C-S-f> searches just that subtree,
+              -- instead of the whole project.
+              ["<C-S-f>"] = "explorer_grep",
             },
           },
         },
