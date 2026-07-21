@@ -278,8 +278,8 @@ bind-key -r , previous-window
 bind-key -r . next-window
 bind-key -r < swap-window -d -t -1
 bind-key -r > swap-window -d -t +1
-bind-key -r '[' if-shell "$is_vim" "send-keys {{$prefix}} '['" "previous-window"
-bind-key -r ']' if-shell "$is_vim" "send-keys {{$prefix}} ']'" "next-window"
+bind-key -r '[' if-shell "$is_vim" "send-keys {{$prefix}} '['" "if-shell \"$is_inner_tmux\" \"send-keys C-e '['\" \"previous-window\""
+bind-key -r ']' if-shell "$is_vim" "send-keys {{$prefix}} ']'" "if-shell \"$is_inner_tmux\" \"send-keys C-e ']'\" \"next-window\""
 bind-key -r '{' if-shell "$is_vim" "send-keys {{$prefix}} '{'" "swap-window -d -t -1"
 bind-key -r '}' if-shell "$is_vim" "send-keys {{$prefix}} '}'" "swap-window -d -t +1"
 
@@ -291,10 +291,10 @@ unbind S-Right
 # Same vim-aware chain as the nav bindings: if the active pane runs vim,
 # forward the chord so smart-splits in nvim can resize the nvim window
 # (and fall through to tmux's resize-pane when nvim hits the edge).
-bind -r S-Up    if-shell "$is_vim" "send-keys {{$prefix}} S-Up"    "resize-pane -U 5"
-bind -r S-Down  if-shell "$is_vim" "send-keys {{$prefix}} S-Down"  "resize-pane -D 5"
-bind -r S-Left  if-shell "$is_vim" "send-keys {{$prefix}} S-Left"  "resize-pane -L 5"
-bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "resize-pane -R 5"
+bind -r S-Up    if-shell "$is_vim" "send-keys {{$prefix}} S-Up"    "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Up\"    \"resize-pane -U 5\""
+bind -r S-Down  if-shell "$is_vim" "send-keys {{$prefix}} S-Down"  "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Down\"  \"resize-pane -D 5\""
+bind -r S-Left  if-shell "$is_vim" "send-keys {{$prefix}} S-Left"  "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Left\"  \"resize-pane -L 5\""
+bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Right\" \"resize-pane -R 5\""
 
 unbind m
 bind -r m resize-pane -Z

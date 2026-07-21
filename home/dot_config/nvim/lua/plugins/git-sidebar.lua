@@ -499,6 +499,43 @@ return {
       })
 
 
+      -- Follow the current file in the git tree: when you open a file
+      -- (e.g. from the explorer), move the git_tree list cursor to that
+      -- file's item so it stays in sync — mirroring snacks.explorer's
+      -- built-in follow_file. Only changed files appear in the tree, so
+      -- opening a clean file simply leaves the highlight where it was.
+      -- Skips when the picker is focused (you're navigating it yourself)
+      -- or when a search is active (don't fight the filter).
+      vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
+        callback = function(args)
+          if vim.bo[args.buf].buftype ~= "" then return end
+          vim.schedule(function()
+            if args.buf ~= vim.api.nvim_get_current_buf() then return end
+            local win = vim.api.nvim_get_current_win()
+            if vim.api.nvim_win_get_config(win).relative ~= "" then return end
+            local ok, snacks = pcall(require, "snacks")
+            if not ok or not snacks.picker then return end
+            local file = vim.fs.normalize(vim.api.nvim_buf_get_name(args.buf))
+            if file == "" then return end
+            for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
+              if not p.closed and not p:is_focused() and p.list then
+                local cur = p.list:current()
+                if not (cur and cur.file and vim.fs.normalize(cur.file) == file) then
+                  for i = 1, p.list:count() do
+                    local it = p.list:get(i)
+                    if it and not it.dir and it.file
+                        and vim.fs.normalize(it.file) == file then
+                      pcall(p.list.view, p.list, i, nil, true)
+                      break
+                    end
+                  end
+                end
+              end
+            end
+          end)
+        end,
+      })
+
       -- Debounced refresh of the git_tree picker on events that may
       -- have changed git state.
       local refresh_timer

@@ -42,6 +42,11 @@ return {
       -- is gated by should_auto_show so it stays quiet in prose/comments/strings.
       completion = {
         menu = { auto_show = should_auto_show },
+        -- Inline "ghost text" preview: the suggestion rendered directly in
+        -- the text as you type. LazyVim enables it globally; we don't want
+        -- it anywhere (distracting, breaks flow). The menu still shows on
+        -- demand via <C-Space> / where should_auto_show allows.
+        ghost_text = { enabled = false },
       },
       cmdline = {
         keymap = {

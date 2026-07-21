@@ -11,6 +11,21 @@ local map = vim.keymap.set
 -- smart-splits.mux which talks to whichever multiplexer is active
 -- (tmux/zellij/wezterm/kitty).
 local function mux_move(dir)
+  -- Inside tmux, check whether the focused pane is at the server's edge in
+  -- this direction. If it is and we're nested (nvim inside an inner tmux),
+  -- smart-splits' select-pane on the inner socket would just stop — so hop
+  -- to the outer server instead (`TMUX=` targets the default socket, the
+  -- outer one). Mirrors the inner tmux config's edge-escape. In a single,
+  -- non-nested tmux this escape is a harmless no-op at the true edge.
+  if vim.env.TMUX then
+    local at_edge = { left = "pane_at_left", right = "pane_at_right", up = "pane_at_top", down = "pane_at_bottom" }
+    local flag = { left = "-L", right = "-R", up = "-U", down = "-D" }
+    local edge = vim.fn.system({ "tmux", "display-message", "-p", "#{" .. at_edge[dir] .. "}" }):gsub("%s+", "")
+    if edge == "1" then
+      vim.fn.system("TMUX= tmux select-pane " .. flag[dir])
+      return
+    end
+  end
   pcall(function()
     require("smart-splits.mux").move_pane(dir, false, "stop")
   end)
@@ -197,24 +212,32 @@ map("i", "<S-Down>", "<C-o>vj<C-g>", { desc = "Select line down" })
 map("i", "<S-Home>", "<C-o>v0<C-g>", { desc = "Select to start of line" })
 map("i", "<S-End>", "<C-o>v$<C-g>", { desc = "Select to end of line" })
 
--- Word motion in insert mode. <C-Left>/<C-Right> on Linux/Windows;
--- Ghostty translates Cmd+arrow into the same CSI sequences on macOS.
--- <Cmd>...<CR> stays in insert mode (no InsertLeave/Enter cycle), so
--- completion plugins don't re-trigger on the cursor move.
--- Right uses `e` (end of word), not `w` (start of NEXT word) — matches the
--- traditional-editor "jump to end of the current word" feel; left stays `b`.
--- In insert mode `e` leaves the caret *on* the last char (i.e. before it),
--- so it reads as second-to-last; the trailing <Right> nudges the caret to
--- sit just past the word's end, where you'd want to keep typing.
-map("i", "<C-Left>", "<Cmd>normal! b<CR>", { desc = "Move word left" })
-map("i", "<C-Right>", "<Cmd>normal! e<CR><Right>", { desc = "Move to word end right" })
--- Same word motion in normal & visual modes.
-map({ "n", "x" }, "<C-Left>", "b", { desc = "Move word left" })
-map({ "n", "x" }, "<C-Right>", "e", { desc = "Move to word end right" })
--- Word selection: enter Visual, extend by word, then toggle to Select
--- mode so typing replaces the selection.
-map("i", "<C-S-Left>", "<C-o>vb<C-g>", { desc = "Select word left" })
-map("i", "<C-S-Right>", "<C-o>ve<C-g>", { desc = "Select word right" })
+-- Word motion. <C-Left>/<C-Right> on Linux/Windows; Ghostty translates
+-- Cmd+arrow into the same CSI sequences on macOS.
+--
+-- Uses a class-based motion (util/word-motion.lua) rather than Vim's
+-- `b`/`e`, which honour 'iskeyword' — and the sql/python/etc. ftplugins add
+-- `@`, `.`, `-`, `#` to 'iskeyword', so the built-in motions skip straight
+-- over `user@host`, `a.b.c`, `--flag`. The class motion stops at every
+-- symbol boundary instead, consistently across filetypes.
+--
+-- The RHS is a Lua callback, which (like <Cmd>) leaves the current mode
+-- untouched — insert stays insert (no InsertLeave/Enter cycle, so completion
+-- doesn't re-trigger), and in visual mode moving the cursor extends the
+-- selection. Right in insert mode passes `past=true` so the caret lands just
+-- after the word (where you keep typing); normal/visual land *on* the last
+-- char, matching `e`.
+local wm = require("util.word-motion")
+map("i", "<C-Left>", function() wm.left() end, { desc = "Move word left" })
+map("i", "<C-Right>", function() wm.right(true) end, { desc = "Move word right" })
+map({ "n", "x" }, "<C-Left>", function() wm.left() end, { desc = "Move word left" })
+map({ "n", "x" }, "<C-Right>", function() wm.right(false) end, { desc = "Move word right" })
+-- Word selection: <C-o>v enters Visual (a mode change, so the following keys
+-- run in Visual, not insert), the class motion extends the selection, then
+-- <C-g> toggles to Select mode so typing replaces it. Right passes `past` so
+-- the whole word is covered under `selection=exclusive`.
+map("i", "<C-S-Left>", "<C-o>v<Cmd>lua require('util.word-motion').left()<CR><C-g>", { desc = "Select word left" })
+map("i", "<C-S-Right>", "<C-o>v<Cmd>lua require('util.word-motion').right(true)<CR><C-g>", { desc = "Select word right" })
 
 -- Ctrl/Cmd + Up/Down: scroll the viewport. Routed through Neovim's mouse
 -- wheel path (nvim_input_mouse) rather than Vim's <C-y>/<C-e> count-scroll.
