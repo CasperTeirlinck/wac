@@ -322,6 +322,15 @@ set -g mode-style 'fg=#21252b,bg=#abb2bf,bold'
 set -g message-style 'fg=#abb2bf,bg=#3b3f4c'
 set -g message-command-style 'fg=#abb2bf,bg=#3b3f4c'
 
+# Agent sidebar: prefix + a toggles a persistent right-hand pane listing the
+# tree of ALL Claude Code agents across BOTH tmux servers (this outer server
+# and the inner `tmi` server). See ~/.config/tmux/agent-sidebar.sh — it reads
+# the status files written by Claude Code hooks (~/.claude/tmux-agent-status.sh)
+# and joins them to each server's live panes. Bound in the OUTER config only so
+# the sidebar lives in the layout beside nvim + the inner-tabs pane; trigger it
+# from anywhere (even a focused inner pane) with `C-a a`.
+bind a run-shell "~/.config/tmux/agent-sidebar.sh toggle"
+
 # Config
 unbind r
 bind r source-file ~/.tmux.conf

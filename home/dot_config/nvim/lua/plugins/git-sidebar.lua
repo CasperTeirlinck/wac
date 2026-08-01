@@ -563,13 +563,44 @@ return {
               end
               pcall(p.find, p)
             end
+
+            -- Also force the LEFT explorer sidebar to re-read git status.
+            -- snacks.explorer caches git status for 15 min and only
+            -- invalidates via a `.git` fs-watcher — unreliable on macOS —
+            -- so in-editor git ops (fugitive commit, gitsigns stage) never
+            -- show up until you reopen nvim. Marking the cache stale (the
+            -- same call the watcher makes) + re-find picks them up on these
+            -- triggers instead. explorer's finder re-runs `git status` on
+            -- find, so this stays async/non-blocking.
+            local EGit = require("snacks.explorer.git")
+            for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
+              if not p.closed then
+                local root = snacks.git.get_root(p:cwd())
+                if root then EGit.refresh(root) end
+                if p.list and p.list.set_target then
+                  pcall(p.list.set_target, p.list)
+                end
+                pcall(p.find, p)
+              end
+            end
           end)
         end, 250)
       end
       vim.api.nvim_create_autocmd(
-        { "BufWritePost", "FocusGained", "DirChanged" },
+        -- ShellCmdPost/TermClose catch `:!git ...` and terminal git;
+        -- FocusGained catches an external terminal you tab back from.
+        { "BufWritePost", "FocusGained", "DirChanged", "ShellCmdPost", "TermClose" },
         { callback = refresh_git_picker }
       )
+      -- The two in-editor git paths that touch the index without a save
+      -- or a focus change: fugitive commands fire User FugitiveChanged,
+      -- gitsigns hunk-staging fires User GitSignsUpdate. Debounced by
+      -- refresh_git_picker's own timer, so the GitSignsUpdate storm during
+      -- editing collapses into one refresh.
+      vim.api.nvim_create_autocmd("User", {
+        pattern = { "FugitiveChanged", "GitSignsUpdate" },
+        callback = refresh_git_picker,
+      })
 
       -- Resolve an orphaned diff window: one window left in diff mode
       -- means its partner just went away. If the orphan holds a scratch
