@@ -1,19 +1,13 @@
--- codewindow.nvim: compact overview of the current buffer, docked at the
--- right edge of the focused editor window (NOT the screen — so it sits
--- naturally to the left of the snacks git_tree sidebar float without any
--- nvim_win_set_config repositioning).
+-- codewindow.nvim: compact buffer overview docked at the right edge of the
+-- focused editor window (relative='win', so it sits left of the git_tree
+-- sidebar without repositioning).
+--   <leader>m   toggle (sticky — survives window switches)
+--   <leader>mf  focus
 --
--- Toggle:  <leader>m   (sticky — stays hidden across window switches)
--- Focus:   <leader>mf
---
--- Sticky-disable: codewindow's `auto_enable = true` registers a
--- BufEnter/WinEnter autocmd that blindly reopens the minimap, with no
--- notion of "the user turned it off" — so closing it via <leader>m only
--- lasts until the next window switch (e.g. returning from the git
--- sidebar). We replace that behavior: `auto_enable = false` makes the
--- plugin's autocmd inert, and we run our own auto-open autocmd gated on
--- `vim.g.minimap_disabled`. The toggle flips that flag, so a disable
--- sticks until you explicitly re-enable.
+-- Sticky-disable: codewindow's `auto_enable` blindly reopens on BufEnter/
+-- WinEnter with no "user turned it off" notion, so <leader>m only lasts until
+-- the next window switch. We set auto_enable=false and drive our own auto-open
+-- autocmd gated on vim.g.minimap_disabled, which the toggle flips.
 return {
   {
     "gorbit99/codewindow.nvim",
@@ -34,16 +28,13 @@ return {
       { "<leader>mf", function() require("codewindow").toggle_focus() end, desc = "Minimap: focus" },
     },
     config = function()
-      -- codewindow's `highlight.lua` `require`s `nvim-treesitter.ts_utils`
-      -- when `use_treesitter` is truthy. That module was removed in
-      -- nvim-treesitter's `main` branch (used by LazyVim), so the transitive
-      -- require chain explodes before `setup()` can do anything. But the
-      -- only thing codewindow uses from it is `get_vim_range`, so we shim
-      -- exactly that (a verbatim copy of nvim-treesitter's old impl: convert
-      -- a 0-indexed, end-exclusive TS node range to a 1-indexed Vim range)
-      -- and inject it into package.loaded BEFORE codewindow is required.
-      -- The pcall first lets a real ts_utils win if the master branch is
-      -- ever used again; the shim only fills in when it's genuinely absent.
+      -- codewindow's highlight.lua requires `nvim-treesitter.ts_utils` when
+      -- use_treesitter is truthy, but that module was removed in
+      -- nvim-treesitter's main branch (LazyVim uses it), so the require chain
+      -- explodes before setup() runs. It only needs `get_vim_range`, so shim
+      -- exactly that (verbatim from the old impl: 0-indexed end-exclusive TS
+      -- range → 1-indexed Vim range) into package.loaded first. The pcall lets
+      -- a real ts_utils win if master is ever used again.
       if not pcall(require, "nvim-treesitter.ts_utils") then
         package.loaded["nvim-treesitter.ts_utils"] = {
           get_vim_range = function(range, buf)
@@ -66,13 +57,12 @@ return {
         }
       end
 
-      -- Pre-mutate the config BEFORE the main module is required so
-      -- highlight.lua sees use_treesitter=true at its module-load gate.
+      -- Mutate the config before the main module loads so highlight.lua sees
+      -- use_treesitter=true at its module-load gate.
       require("codewindow.config").setup({ use_treesitter = true })
 
       require("codewindow").setup({
-        -- Our own autocmd below drives auto-open (gated on the sticky
-        -- flag); the plugin's built-in one would ignore it. See header.
+        -- Our autocmd below drives auto-open (gated on the sticky flag).
         auto_enable = false,
         exclude_filetypes = {
           "help",
@@ -93,17 +83,14 @@ return {
       })
 
       -- Drive the minimap's git column from gitsigns' hunks instead of
-      -- codewindow's built-in `git diff -U0 <file>`. That shell-out only
-      -- reports *unstaged, tracked* changes, so untracked files (no diff
-      -- output) and staged changes showed nothing in the minimap even
-      -- though gitsigns painted them in the editor gutter — the exact
-      -- "shows in the editor but not the minimap, for some files only"
-      -- mismatch. Sourcing from gitsigns guarantees the minimap matches
-      -- the gutter (gitsigns marks untracked files as all-adds, etc.).
-      -- parse_git_diff only receives `lines`, but the minimap follows the
-      -- focused window, so the current buffer is the one being rendered.
-      -- We rebuild the same per-line add/remove bitmask aggregation the
-      -- original used, so the downstream rendering is unchanged.
+      -- codewindow's built-in `git diff -U0`, which only reports unstaged
+      -- tracked changes — so untracked and staged files showed nothing even
+      -- though gitsigns painted them in the gutter. gitsigns marks untracked
+      -- files as all-adds, so the minimap matches the gutter. parse_git_diff
+      -- only gets `lines`, but the minimap follows the focused window so the
+      -- current buffer is the one rendered; we rebuild the same per-line
+      -- add/remove bitmask the original used, leaving downstream rendering
+      -- unchanged.
       local cw_git = require("codewindow.git")
       local cw_utils = require("codewindow.utils")
       cw_git.parse_git_diff = function(lines)
@@ -128,8 +115,7 @@ return {
             end
           end
           local rcount = (h.removed or {}).count or 0
-          -- Deletion marker for pure deletes (no added lines) or a hunk
-          -- that net-removes lines — mirrors a gitsigns delete sign.
+          -- Deletion marker for pure deletes or a net-removing hunk.
           if acount == 0 or rcount > acount then
             local mark = math.max(astart, 1)
             if mark <= nlines then
@@ -139,9 +125,7 @@ return {
         end
 
         -- Aggregate per-line changes into the minimap's 4:1 braille glyphs
-        -- exactly as codewindow's built-in renderer did, so the indicators
-        -- look identical to the default — we've only swapped the data source
-        -- (gitsigns hunks instead of `git diff`).
+        -- exactly as codewindow's renderer did — only the data source changed.
         local minimap_height = math.ceil(nlines / 4)
         for y = 1, minimap_height do
           local a_flag, d_flag = 0, 0
@@ -159,12 +143,9 @@ return {
         return git_lines
       end
 
-      -- Replacement auto-open: reopen the minimap on buffer/window enter
-      -- (so it follows the focused editor window, like auto_enable did),
-      -- but bail out when the user has stickily disabled it. open_minimap
-      -- is a safe no-op on sidebars / special buffers (codewindow's
-      -- should_ignore checks exclude_filetypes + buftype), so no filtering
-      -- is needed here.
+      -- Replacement auto-open: reopen on buffer/window enter (so it follows the
+      -- focused window, like auto_enable did) unless stickily disabled.
+      -- open_minimap is a safe no-op on sidebars / special buffers.
       vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
         group = vim.api.nvim_create_augroup("minimap_sticky_autoopen", { clear = true }),
         callback = function()
@@ -177,15 +158,11 @@ return {
         end,
       })
 
-      -- Repaint when gitsigns' hunks become available. gitsigns computes
-      -- hunks asynchronously, but codewindow renders the minimap
-      -- synchronously on BufEnter — so on a freshly opened file the git
-      -- column drew empty (hunks didn't exist yet) and stayed empty until
-      -- the next unrelated minimap update (a cursor move, a text change).
-      -- gitsigns fires `User GitSignsUpdate` once its signs are ready;
-      -- re-rendering then (open_minimap is the idempotent refresh path the
-      -- auto-open autocmd above already uses) populates the git column
-      -- immediately. Gated on the sticky-disable flag like the rest.
+      -- Repaint when gitsigns' hunks arrive. gitsigns computes hunks async but
+      -- codewindow renders synchronously on BufEnter, so a freshly opened file's
+      -- git column drew empty until the next unrelated update. gitsigns fires
+      -- User GitSignsUpdate when its signs are ready; re-rendering then (via the
+      -- idempotent open_minimap) populates the column immediately.
       vim.api.nvim_create_autocmd("User", {
         pattern = "GitSignsUpdate",
         group = vim.api.nvim_create_augroup("minimap_gitsigns_refresh", { clear = true }),

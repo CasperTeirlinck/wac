@@ -1,22 +1,17 @@
 -- Keymaps are automatically loaded on the VeryLazy event
--- Default keymaps that are always set: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
--- Add any additional keymaps here
+-- Default keymaps: https://github.com/LazyVim/LazyVim/blob/main/lua/lazyvim/config/keymaps.lua
 
 local map = vim.keymap.set
 
--- Pane navigation by screen geometry. Handles real splits AND snacks
--- picker "floats" (sidebars rendered as relative='win' floating windows
--- that wincmd can't traverse). For each direction, find the
--- geometrically-closest window in that direction; if none, hand off to
--- smart-splits.mux which talks to whichever multiplexer is active
--- (tmux/zellij/wezterm/kitty).
+-- Pane navigation by screen geometry. Handles real splits AND snacks picker
+-- "floats" (sidebars rendered as relative='win' windows wincmd can't traverse):
+-- find the geometrically-closest window in the given direction, else hand off to
+-- smart-splits.mux (tmux/zellij/wezterm/kitty).
 local function mux_move(dir)
-  -- Inside tmux, check whether the focused pane is at the server's edge in
-  -- this direction. If it is and we're nested (nvim inside an inner tmux),
-  -- smart-splits' select-pane on the inner socket would just stop — so hop
-  -- to the outer server instead (`TMUX=` targets the default socket, the
-  -- outer one). Mirrors the inner tmux config's edge-escape. In a single,
-  -- non-nested tmux this escape is a harmless no-op at the true edge.
+  -- Inside tmux, if the focused pane is at the server's edge in this direction
+  -- and we're nested (nvim inside an inner tmux), smart-splits' select-pane on
+  -- the inner socket would just stop — so hop to the outer server (`TMUX=`
+  -- targets the default/outer socket). Harmless no-op in a single tmux.
   if vim.env.TMUX then
     local at_edge = { left = "pane_at_left", right = "pane_at_right", up = "pane_at_top", down = "pane_at_bottom" }
     local flag = { left = "-L", right = "-R", up = "-U", down = "-D" }
@@ -30,9 +25,9 @@ local function mux_move(dir)
     require("smart-splits.mux").move_pane(dir, false, "stop")
   end)
 end
--- Windows belonging to the same snacks picker as `cur_win` (input,
--- list, preview). Used to exclude same-picker sub-windows from nav so
--- "down" from a sidebar input doesn't land on the sibling list window.
+-- Windows of the same snacks picker as `cur_win` (input, list, preview). Used to
+-- exclude same-picker sub-windows from nav so "down" from a sidebar input
+-- doesn't land on its sibling list window.
 local function picker_sibling_wins(cur_win)
   local set = {}
   local ok, snacks = pcall(require, "snacks")
@@ -66,15 +61,12 @@ local function picker_sibling_wins(cur_win)
   return set
 end
 
--- Neovim's mode is global, not per-window. Switching windows while a
--- Visual/Select selection is live drags that selection into the target
--- window, where it re-anchors from a meaningless cursor position and
--- highlights garbage (e.g. landing in the explorer selects a block of its
--- tree). So before a window switch we drop to normal mode — which records
--- the selection in the buffer's '< / '> marks — and remember the window we
--- left. The WinEnter autocmd below reselects it with `gv` the moment focus
--- returns to that window, so the selection is *preserved*, not lost: it
--- just steps aside while you're away and snaps back when you come home.
+-- Neovim's mode is global, not per-window. Switching windows with a
+-- Visual/Select selection live drags it into the target window, where it
+-- re-anchors and highlights garbage. So before a switch we drop to normal mode
+-- (recording the selection in '< / '> marks) and remember the window we left;
+-- the WinEnter autocmd below reselects it with `gv` on return — preserved, not
+-- lost.
 local pending_reselect = nil
 
 local function preserve_visual_select()
@@ -92,9 +84,8 @@ vim.api.nvim_create_autocmd("WinEnter", {
     local win = vim.api.nvim_get_current_win()
     if win ~= pending_reselect then return end
     pending_reselect = nil
-    -- Schedule so the window switch fully settles before reselecting; `gv`
-    -- restores the last visual selection of this buffer. pcall guards the
-    -- case where the marks are no longer valid (buffer changed under us).
+    -- Schedule so the switch settles before `gv` reselects; pcall guards
+    -- invalidated marks (buffer changed under us).
     vim.schedule(function()
       if vim.api.nvim_get_current_win() == win then
         pcall(vim.cmd, "normal! gv")
@@ -113,25 +104,22 @@ local function nav(dir)
     local cur_h = vim.api.nvim_win_get_height(cur)
 
     local best, best_dist = nil, math.huge
-    -- Scope to the CURRENT tabpage only. nvim_list_wins() spans every
-    -- tabpage, so in a separate-tab layout (e.g. diffview) navigating toward
-    -- an edge would find a window in another tab and nvim_set_current_win
-    -- would jump there — silently switching tabpages and throwing you out of
-    -- the diffview tab. tabpage_list_wins(0) keeps nav within the current tab;
-    -- at a real edge it falls through to the multiplexer as intended.
+    -- Current tabpage only. nvim_list_wins() spans every tab, so navigating
+    -- toward an edge in a separate-tab layout (diffview) could jump to another
+    -- tab. tabpage_list_wins(0) keeps nav in-tab; at a real edge it falls
+    -- through to the multiplexer.
     for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
       if w ~= cur and not siblings[w] and vim.api.nvim_win_is_valid(w) then
         local cfg = vim.api.nvim_win_get_config(w)
-        -- Skip non-embedded floats (e.g. completion popups) but include
-        -- snacks-style embedded floats (zindex < 50).
+        -- Skip non-embedded floats (completion popups); include snacks-style
+        -- embedded floats (zindex < 50).
         local skip = cfg.relative ~= "" and (cfg.zindex or 50) >= 50
         if not skip then
           local p = vim.api.nvim_win_get_position(w)
           local pw = vim.api.nvim_win_get_width(w)
           local ph = vim.api.nvim_win_get_height(w)
           -- Direction check + overlap on the perpendicular axis so an
-          -- "off to the side" window doesn't get picked as a vertical
-          -- (or horizontal) neighbour.
+          -- off-to-the-side window isn't picked as a neighbour.
           local h_overlap = (p[2] < cur_pos[2] + cur_w) and (p[2] + pw > cur_pos[2])
           local v_overlap = (p[1] < cur_pos[1] + cur_h) and (p[1] + ph > cur_pos[1])
           local valid, dist = false, 0
@@ -158,7 +146,7 @@ local function nav(dir)
     if best then
       vim.api.nvim_set_current_win(best)
     else
-      -- No nvim window in that direction → hand off to the multiplexer.
+      -- No nvim window that way → hand off to the multiplexer.
       mux_move(dir)
     end
   end
@@ -168,12 +156,10 @@ map({ "n", "i", "v" }, "<C-a><Down>", nav("down"), { desc = "Navigate down" })
 map({ "n", "i", "v" }, "<C-a><Up>", nav("up"), { desc = "Navigate up" })
 map({ "n", "i", "v" }, "<C-a><Right>", nav("right"), { desc = "Navigate right" })
 
--- Pane resize: <C-a><S-Arrow> mirrors tmux's `prefix S-Arrow`. Uses
--- smart-splits so it resizes the nvim window when there's a neighbour
--- in that direction, and otherwise hands off to the multiplexer
--- (resizes the surrounding tmux pane). The outer tmux forwards the
--- chord here when the active pane runs vim — see the S-Arrow chain in
--- dot_tmux.conf.tmpl.
+-- Pane resize: <C-a><S-Arrow> mirrors tmux's `prefix S-Arrow`. smart-splits
+-- resizes the nvim window when there's a neighbour that way, else hands off to
+-- the multiplexer. The outer tmux forwards the chord here when the active pane
+-- runs vim (see dot_tmux.conf.tmpl).
 local function resize(dir)
   return function()
     pcall(function()
@@ -186,25 +172,21 @@ map({ "n", "i", "v" }, "<C-a><S-Down>", resize("down"), { desc = "Resize down" }
 map({ "n", "i", "v" }, "<C-a><S-Up>", resize("up"), { desc = "Resize up" })
 map({ "n", "i", "v" }, "<C-a><S-Right>", resize("right"), { desc = "Resize right" })
 
--- <C-a>[ / <C-a>]: cycle through bufferline buffers (mirrors tmux prefix
--- window navigation, since `<C-a>` is also the tmux prefix).
+-- <C-a>[ / <C-a>]: cycle bufferline buffers (mirrors tmux prefix window nav,
+-- since `<C-a>` is also the tmux prefix).
 map({ "n", "i", "v" }, "<C-a>[", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous buffer" })
 map({ "n", "i", "v" }, "<C-a>]", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next buffer" })
 
--- <C-a>x: close the current buffer. Mirrors tmux's `prefix x` (close
--- pane); the outer tmux already forwards `C-a x` here when the active
--- pane runs vim (see the `bind-key x` chain in dot_tmux.conf.tmpl), so
--- we just need the matching keymap on this side. Snacks.bufdelete keeps
--- the window alive (unlike :bdelete, which closes the window if it was
--- the only buffer in it) — important so the sidebars stay put.
+-- <C-a>x: close the current buffer (mirrors tmux's `prefix x`, which the outer
+-- tmux forwards here when the pane runs vim). Snacks.bufdelete keeps the window
+-- alive (unlike :bdelete) so the sidebars stay put.
 map({ "n", "i", "v" }, "<C-a>x", function()
   require("snacks").bufdelete()
 end, { desc = "Close buffer" })
 
--- Non-vim-style insert-mode selection.
--- Enter Visual mode + letter motion, then <C-g> toggles to Select mode
--- so typing replaces the selection. Letter motions are used (not arrow
--- keys) because keymodel=stopsel cancels Select mode on unshifted special keys.
+-- Non-vim-style insert-mode selection: Visual + letter motion, then <C-g>
+-- toggles to Select mode so typing replaces the selection. Letter motions (not
+-- arrows) because keymodel=stopsel cancels Select on unshifted special keys.
 map("i", "<S-Left>", "<C-o>vh<C-g>", { desc = "Select character left" })
 map("i", "<S-Right>", "<C-o>vl<C-g>", { desc = "Select character right" })
 map("i", "<S-Up>", "<C-o>vk<C-g>", { desc = "Select line up" })
@@ -212,48 +194,33 @@ map("i", "<S-Down>", "<C-o>vj<C-g>", { desc = "Select line down" })
 map("i", "<S-Home>", "<C-o>v0<C-g>", { desc = "Select to start of line" })
 map("i", "<S-End>", "<C-o>v$<C-g>", { desc = "Select to end of line" })
 
--- Word motion. <C-Left>/<C-Right> on Linux/Windows; Ghostty translates
--- Cmd+arrow into the same CSI sequences on macOS.
---
--- Uses a class-based motion (util/word-motion.lua) rather than Vim's
--- `b`/`e`, which honour 'iskeyword' — and the sql/python/etc. ftplugins add
--- `@`, `.`, `-`, `#` to 'iskeyword', so the built-in motions skip straight
--- over `user@host`, `a.b.c`, `--flag`. The class motion stops at every
--- symbol boundary instead, consistently across filetypes.
---
--- The RHS is a Lua callback, which (like <Cmd>) leaves the current mode
--- untouched — insert stays insert (no InsertLeave/Enter cycle, so completion
--- doesn't re-trigger), and in visual mode moving the cursor extends the
--- selection. Right in insert mode passes `past=true` so the caret lands just
--- after the word (where you keep typing); normal/visual land *on* the last
--- char, matching `e`.
+-- Word motion. <C-Left>/<C-Right> on Linux/Windows; Ghostty maps Cmd+arrow to
+-- the same CSI sequences on macOS. Uses a class-based motion (util/word-motion)
+-- rather than `b`/`e`, which honour 'iskeyword' — the sql/python/etc. ftplugins
+-- add `@ . - #` to it, so the built-ins skip over `user@host`, `a.b.c`,
+-- `--flag`. The class motion stops at every symbol boundary. The Lua-callback
+-- RHS (like <Cmd>) leaves the mode untouched — insert stays insert (no
+-- completion re-trigger), visual extends the selection. Right in insert passes
+-- `past=true` so the caret lands after the word; normal/visual land on the last
+-- char, like `e`.
 local wm = require("util.word-motion")
 map("i", "<C-Left>", function() wm.left() end, { desc = "Move word left" })
 map("i", "<C-Right>", function() wm.right(true) end, { desc = "Move word right" })
 map({ "n", "x" }, "<C-Left>", function() wm.left() end, { desc = "Move word left" })
 map({ "n", "x" }, "<C-Right>", function() wm.right(false) end, { desc = "Move word right" })
--- Word selection: <C-o>v enters Visual (a mode change, so the following keys
--- run in Visual, not insert), the class motion extends the selection, then
--- <C-g> toggles to Select mode so typing replaces it. Right passes `past` so
--- the whole word is covered under `selection=exclusive`.
+-- Word selection: <C-o>v enters Visual (a mode change, so the motion runs in
+-- Visual), the class motion extends, <C-g> toggles to Select so typing
+-- replaces. Right passes `past` to cover the whole word under exclusive select.
 map("i", "<C-S-Left>", "<C-o>v<Cmd>lua require('util.word-motion').left()<CR><C-g>", { desc = "Select word left" })
 map("i", "<C-S-Right>", "<C-o>v<Cmd>lua require('util.word-motion').right(true)<CR><C-g>", { desc = "Select word right" })
 
--- Ctrl/Cmd + Up/Down: scroll the viewport. Routed through Neovim's mouse
--- wheel path (nvim_input_mouse) rather than Vim's <C-y>/<C-e> count-scroll.
--- The wheel path is what makes mouse scrolling glassy-smooth; <C-y>/<C-e>
--- with a count drags the cursor in multi-line lurches at the scrolloff
--- margin, which reads as jitter when a key is held. We aim the synthetic
--- wheel at the cursor's screen position so it hits the focused window, and
--- send a few notches per press for speed. `mousescroll` (options.lua,
--- ver:1) sets lines per notch. Callback form works in every mode (no
--- <C-o>), so insert mode scrolls without leaving insert.
--- On macOS, Ghostty forwards Cmd+Up/Down as these Ctrl+Up/Down CSI
--- sequences (see ghostty/config); on Linux they arrive natively.
---
--- NB: the big "delayed/replayed" jitter when holding this chord was NOT
--- here — it was the tmux binding running `ps` per key-repeat to detect vim
--- (see dot_tmux.conf.tmpl / dot_tmux.inner.conf, now format-based).
+-- Ctrl/Cmd + Up/Down: scroll the viewport via Neovim's mouse-wheel path
+-- (nvim_input_mouse), not <C-y>/<C-e>. The wheel path is what makes scrolling
+-- glassy-smooth; count-scroll lurches at the scrolloff margin and reads as
+-- jitter when held. Aimed at the cursor's screen position so it hits the
+-- focused window; `mousescroll` (options.lua) sets lines per notch. Callback
+-- form works in every mode, so insert scrolls without leaving insert. On macOS,
+-- Ghostty forwards Cmd+Up/Down as these Ctrl+Up/Down CSI sequences.
 local scroll_ticks = 3
 local function wheel(dir)
   return function()
@@ -270,31 +237,26 @@ map({ "n", "x", "i" }, "<C-Down>", wheel("down"), { desc = "Scroll down" })
 -- `jk` exits insert mode (fast <Esc> without leaving the home row).
 map("i", "jk", "<Esc>", { desc = "Escape insert mode" })
 
--- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C
--- (\x03), so we bind <C-c> here. Cmd+V already pastes natively via
--- ghostty's paste_from_clipboard action.
--- The "my ... `y" pattern marks the cursor before yank and restores
--- after, so the cursor stays put instead of jumping to the start of
--- the selection (Vim's default behavior).
+-- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C, so bind
+-- <C-c>. The `my ... `y` pattern marks the cursor before yank and restores
+-- after, so it stays put instead of jumping to the selection start.
 map("n", "<C-c>", 'my"+yy`y', { desc = "Copy line to clipboard" })
 map("x", "<C-c>", 'my"+y`y', { desc = "Copy selection to clipboard" })
--- In Select mode every printable character would *replace* the
--- selection, so toggle to Visual first via <C-g>, then yank.
+-- In Select mode a printable char replaces the selection, so <C-g> to Visual
+-- first, then yank.
 map("s", "<C-c>", '<C-g>my"+y`y', { desc = "Copy selection to clipboard" })
 map("i", "<C-c>", '<Cmd>normal! my"+yy`y<CR>', { desc = "Copy line to clipboard" })
 
--- Enter in normal mode starts insert (VSCode-style "press Enter to edit").
--- Buffer-local <CR> mappings (quickfix, explorer, picker, etc.) take
--- precedence, so this only fires in normal file buffers.
+-- Enter in normal mode starts insert (VSCode-style). Buffer-local <CR> maps
+-- (quickfix, explorer, picker) take precedence, so this only fires in files.
 map("n", "<CR>", "i", { desc = "Enter insert mode" })
 
--- Ctrl+Z: undo (overrides nvim's default suspend behavior).
+-- Ctrl+Z: undo (overrides nvim's default suspend).
 map({ "n", "x", "s" }, "<C-z>", "<Cmd>undo<CR>", { desc = "Undo" })
 map("i", "<C-z>", "<Cmd>undo<CR>", { desc = "Undo" })
 
--- Ctrl+V: paste from clipboard register. Bypasses ghostty/tmux text
--- input so multi-line pastes preserve their newlines. Loses the default
--- visual-block-mode binding in normal mode; use <C-q> instead if needed.
+-- Ctrl+V: paste from clipboard. Bypasses ghostty/tmux text input so multi-line
+-- pastes keep their newlines. Loses visual-block in normal mode; use <C-q>.
 map("n", "<C-v>", '"+p', { desc = "Paste from clipboard" })
 map("i", "<C-v>", "<C-r>+", { desc = "Paste from clipboard" })
 map("x", "<C-v>", '"+p', { desc = "Paste over selection" })
@@ -306,29 +268,23 @@ map("x", "<C-x>", '"+d', { desc = "Cut selection to clipboard" })
 map("s", "<C-x>", '<C-g>"+d', { desc = "Cut selection to clipboard" })
 map("i", "<C-x>", '<Cmd>normal! "+dd<CR>', { desc = "Cut line to clipboard" })
 
--- Ctrl+S: save. LazyVim's default is `<cmd>w<cr><esc>`, whose trailing <esc>
--- kicks you out of insert mode on every save. `<Cmd>w<CR>` runs the write
--- without changing mode, so saving from insert keeps you in insert (VSCode
--- style). Ghostty forwards Cmd+S as Ctrl+S (see ghostty/config).
+-- Ctrl+S: save. LazyVim's default `<cmd>w<cr><esc>` kicks you out of insert on
+-- every save; `<Cmd>w<CR>` writes without changing mode (VSCode style). Ghostty
+-- forwards Cmd+S as Ctrl+S.
 map({ "n", "i", "x", "s" }, "<C-s>", "<Cmd>w<CR>", { desc = "Save file" })
 
--- Ctrl+/ : toggle comment (VSCode-style). Karabiner swaps Cmd↔Ctrl so
--- the macOS muscle-memory Cmd+/ lands here too. Drives Neovim's built-in
--- `gc`/`gcc` operator (ts-comments.nvim wires commentstring via
--- treesitter for embedded languages like .tsx).
--- `<C-_>` (0x1F) is the legacy-terminal encoding of Ctrl+/; bind both
--- so it works regardless of whether the terminal speaks CSI-u or not.
---
--- Empty-line special case: gcc is a no-op on a blank line (nothing to
--- toggle). VSCode inserts the comment leader on blank lines and parks
--- the cursor ready to type. Match that.
+-- Ctrl+/ : toggle comment (VSCode-style). Karabiner swaps Cmd↔Ctrl so Cmd+/
+-- lands here too. Drives `gc`/`gcc` (ts-comments wires commentstring via
+-- treesitter for embedded languages). `<C-_>` (0x1F) is the legacy-terminal
+-- encoding of Ctrl+/; bind both. Empty-line special case: gcc is a no-op on a
+-- blank line, so insert the comment leader and park the cursor, like VSCode.
 local function insert_comment_leader_if_blank()
   local line = vim.api.nvim_get_current_line()
   if not line:match("^%s*$") then return false end
   local cs = vim.bo.commentstring
   if cs == "" then return false end
-  -- commentstring is "<before>%s<after>" — e.g. "-- %s", "// %s",
-  -- "{/* %s */}". Extract both halves; ensure a space after the prefix.
+  -- commentstring is "<before>%s<after>"; extract both halves, ensure a space
+  -- after the prefix.
   local before, after = cs:match("(.-)%%s(.*)")
   if not before then return false end
   if not before:match("%s$") then before = before .. " " end
@@ -358,20 +314,18 @@ for _, lhs in ipairs({ "<C-/>", "<C-_>" }) do
   map("i", lhs, comment_insert,        { desc = "Toggle comment / insert leader" })
 end
 
--- Shift+Tab: dedent (VSCode-style). Tab is left alone (snippet/completion
--- plugins may use it). blink.cmp is on the "enter" preset, so it does NOT
--- bind <S-Tab> in insert mode — safe to override here.
--- Select-mode dance: <C-g> flips to Visual so the `<` operator sees the
--- marks, `gv` reselects after dedent, final <C-g> flips back to Select.
+-- Shift+Tab: dedent (VSCode-style). Tab is left alone (snippet/completion may
+-- use it); blink.cmp is on the "enter" preset so it doesn't bind <S-Tab> in
+-- insert. Select-mode dance: <C-g> to Visual so `<` sees the marks, `gv`
+-- reselects, final <C-g> back to Select.
 map("n", "<S-Tab>", "<<",                  { desc = "Dedent line" })
 map("x", "<S-Tab>", "<gv",                 { desc = "Dedent selection" })
 map("s", "<S-Tab>", "<C-g><gv<C-g>",       { desc = "Dedent selection" })
 map("i", "<S-Tab>", "<C-d>",               { desc = "Dedent line" })
 
--- <leader>cp : copy absolute file path to the system clipboard. If the
--- current window belongs to a snacks picker (explorer / git_tree /
--- buffers / etc.), yank the highlighted item's path; otherwise yank
--- the current buffer's path.
+-- <leader>cp : copy absolute file path to the clipboard. If the current window
+-- is a snacks picker (explorer / git_tree / buffers), yank the highlighted
+-- item's path; otherwise the current buffer's path.
 local function yank_path()
   local ok, snacks = pcall(require, "snacks")
   if ok and snacks.picker then
@@ -399,10 +353,8 @@ local function yank_path()
 end
 map("n", "<leader>cp", yank_path, { desc = "Copy file path (buffer or picker item)" })
 
--- F2: rename symbol under cursor via LSP (VSCode-style).
--- Works from normal, insert, visual, and select mode. In visual/select
--- we feedkeys <Esc> first and schedule the rename so the cursor settles
--- on a single position before the LSP `prepareRename` request fires.
+-- F2: LSP rename (VSCode-style). From visual/select, feedkeys <Esc> first and
+-- schedule the rename so the cursor settles before prepareRename fires.
 local function lsp_rename()
   local mode = vim.fn.mode()
   if mode == "n" or mode == "i" then
@@ -414,10 +366,7 @@ local function lsp_rename()
 end
 map({ "n", "i", "v", "s" }, "<F2>", lsp_rename, { desc = "Rename symbol (LSP)" })
 
--- Ctrl+Shift+F: global text search (grep across project).
--- F1: global file search (fuzzy find files in project).
--- F3: search open buffers.
--- F12: go to definition (LSP).
+-- Search/nav: <C-S-f> grep, F1 files, F3 buffers, F12 / <C-CR> go-to-definition.
 local function grep()
   require("snacks").picker.grep()
 end
@@ -436,12 +385,10 @@ map({ "n", "i", "v", "s" }, "<F3>", buffers, { desc = "Search open buffers" })
 map({ "n", "i", "v", "s" }, "<F12>", definition, { desc = "Go to definition" })
 map({ "n", "i", "v", "s" }, "<C-CR>", definition, { desc = "Go to definition" })
 
--- Ctrl+Shift+Enter: LSP hover (docs / signature) for the symbol under the
--- cursor. Sibling to `<C-CR>` (go-to-definition) — both lift VSCode-style
--- symbol inspection into nvim. Prefer this over LazyVim's `gK`, which
--- calls `signature_help` and only resolves inside a function-call paren
--- (returns "No signature help found" outside that context).
--- Press again to focus the float; `q` closes it.
+-- Ctrl+Shift+Enter: LSP hover for the symbol under the cursor. Preferred over
+-- LazyVim's `gK` (signature_help, only resolves inside a call paren). Press
+-- again to focus the float; `q` closes it. From visual/select, <Esc> + schedule
+-- like lsp_rename.
 local function hover()
   local mode = vim.fn.mode()
   if mode == "n" or mode == "i" then
@@ -452,9 +399,6 @@ local function hover()
   vim.schedule(function() vim.lsp.buf.hover() end)
 end
 map({ "n", "i", "v", "s" }, "<C-S-CR>", hover, { desc = "Hover (LSP docs)" })
--- NOTE: do NOT add a fallback `<Esc>[13;5u` mapping here. The tmux
--- config sets `extended-keys on` + `terminal-features 'xterm*:extkeys'`,
--- so Neovim already resolves the CSI-u sequence to <C-CR> natively. A
--- raw `<Esc>[...` mapping makes every plain <Esc> wait `timeoutlen`
--- (~300ms) for the rest of the sequence — felt as a sluggish exit
--- from insert mode.
+-- NB: do NOT add a fallback `<Esc>[13;5u` map. tmux's `extended-keys on` +
+-- xterm extkeys means nvim already resolves the CSI-u sequence to <C-CR>
+-- natively; a raw `<Esc>[...` map would make every plain <Esc> wait timeoutlen.

@@ -1,15 +1,9 @@
--- The explorer `format` fn (further down) runs once PER ROW, PER RENDER. It
--- needs the "most-recently-active file" to draw that row bold — but computing
--- it there (getbufinfo + sort + name lookups) meant ~N× full buffer
--- enumeration on every cursor move in the sidebar (N = visible rows). That's a
--- real per-keystroke cost, and it's exactly the per-move redraw work that a
--- slow terminal renderer (Windows Terminal) can't keep up with, so the sidebar
--- feels laggy/backed-up when you hold a movement key.
---
--- The active file only changes on buffer switch, so compute it once and cache;
--- invalidate on BufEnter. Scrolling the sidebar fires no BufEnter, so every
--- per-row format call hits the cache. Value is the *normalized* path (or nil)
--- so the per-row compare below doesn't re-normalize `current` each time either.
+-- The explorer `format` fn runs once per row per render. Computing the
+-- most-recently-active file there meant an N× buffer enumeration on every
+-- cursor move — the per-move redraw a slow terminal (Windows Terminal) can't
+-- keep up with, so the sidebar felt laggy. The active file only changes on
+-- buffer switch, so compute once, cache the normalized path, invalidate on
+-- BufEnter.
 local af_valid, af_value = false, nil
 local function active_file()
   if not af_valid then
@@ -33,61 +27,38 @@ vim.api.nvim_create_autocmd("BufEnter", { callback = function() af_valid = false
 
 return {
   "folke/snacks.nvim",
-  -- LazyVim's snacks-picker extra binds <leader>gd to Snacks.picker.git_diff
-  -- ("Git Diff (hunks)"). We want <leader>gd to be diffview's DiffviewOpen
-  -- (plugins/merge.lua) instead. Because the two mappings live on different
-  -- plugins, lazy.nvim's load order picked the winner nondeterministically
-  -- (inconsistent between nvim starts). Disabling the snacks one here — same
-  -- plugin, so lazy merges and drops it — leaves diffview's as the only
-  -- <leader>gd, deterministically.
+  -- LazyVim's snacks-picker extra binds <leader>gd to git_diff. We want it to
+  -- be diffview's DiffviewOpen (plugins/merge.lua); the two live on different
+  -- plugins so load order picked the winner nondeterministically. Disabling
+  -- the snacks one here (same plugin, so lazy merges it away) makes diffview's
+  -- the only <leader>gd.
   keys = {
     { "<leader>gd", false },
   },
   opts = function(_, opts)
     opts.dashboard = vim.tbl_deep_extend("force", opts.dashboard or {}, { enabled = false })
-    -- Inline image previews via Kitty graphics protocol (Ghostty supports it
-    -- natively). PNG/JPG/GIF render with no extra deps; SVG/PDF/AVIF need
-    -- `imagemagick` on PATH (installed via Homebrew on Darwin, nixpkgs on
-    -- Linux). Opens image files full-pane and also drives snacks.picker
-    -- previews + inline markdown image rendering.
-    --
-    -- Known quirk: on buffer-switch between two open images under tmux, the
-    -- previously-shown image vanishes and "Identify loading…" reappears.
-    -- Workaround: `:e!` to re-render. Tried 3rd/image.nvim as an
-    -- alternative; its hijack mode interacts badly with the snacks.explorer
-    -- sidebar layout, so we're back here.
-    -- Add `svg` to the formats allowlist — it's not in snacks's default
-    -- list, so without this `nvim foo.svg` and inline `![](foo.svg)` in
-    -- markdown both fall back to text rendering. The vector → PNG
-    -- conversion recipe is already wired up in snacks's `convert.magick`
-    -- (rasterised at -density 192), so allowing the extension is all
-    -- that's needed.
+    -- Inline image previews via the Kitty graphics protocol (Ghostty supports
+    -- it natively). PNG/JPG/GIF need no deps; SVG/PDF/AVIF need `imagemagick`
+    -- on PATH. `svg` isn't in snacks's default allowlist, so add it — the
+    -- vector→PNG recipe (convert.magick) is already wired, only the extension
+    -- was missing. Quirk: switching between two open images under tmux blanks
+    -- the previous one; `:e!` re-renders.
     opts.image = vim.tbl_deep_extend("force", opts.image or {}, {
       enabled = true,
       formats = { "png", "jpg", "jpeg", "gif", "bmp", "webp", "tiff",
         "heic", "avif", "mp4", "mov", "avi", "mkv", "webm", "pdf", "icns", "svg" },
     })
-    -- Suppress `/` search highlighting in snacks picker windows (esp. the
-    -- explorer sidebar). Without this, hlsearch lights up matching
-    -- filenames in the tree whenever you `/` search inside a file buffer.
-    --
-    -- Approach: create a per-window highlight namespace where Search /
-    -- CurSearch / IncSearch are empty, and attach it via
-    -- `nvim_win_set_hl_ns` to any window with a snacks picker buffer.
-    -- This bypasses `winhighlight` (which snacks keeps rewriting) and
-    -- works even for windows that already exist when this code runs.
+    -- Suppress `/` search highlighting in picker windows (esp. the explorer):
+    -- without this, hlsearch lights up matching filenames in the tree. Use a
+    -- per-window highlight namespace with empty Search/CurSearch/IncSearch,
+    -- attached via nvim_win_set_hl_ns — bypasses `winhighlight` (which snacks
+    -- keeps rewriting) and works for pre-existing windows.
     local ns = vim.api.nvim_create_namespace("snacks_picker_no_hlsearch")
-    -- Attaching a window-local namespace has two side effects that bite the
-    -- picker's selection highlight:
-    --   1. `winhighlight` is bypassed for that window — so snacks's
-    --      `CursorLine:SnacksPickerListCursorLine` remap never applies, and
-    --      the cursorline is drawn using plain `CursorLine` (whose bg
-    --      `#21262b` is nearly identical to our Normal `#21252b` → invisible).
-    --   2. Link targets are resolved *within* the namespace, not falling
-    --      back to global ns 0. So `link = "Visual"` here would resolve to
-    --      an empty entry, not the global Visual.
-    -- Workaround: inline the Visual bg (`#3b3f4c`) directly onto CursorLine
-    -- in this namespace, and refresh on ColorScheme to follow theme changes.
+    -- Attaching a window-local namespace bypasses `winhighlight`, so snacks's
+    -- `CursorLine:SnacksPickerListCursorLine` remap never applies (cursorline
+    -- draws as plain CursorLine, near-invisible against Normal). And link
+    -- targets resolve within the namespace, not global ns 0. Fix: inline the
+    -- Visual bg onto CursorLine here, refreshed on ColorScheme.
     local function refresh()
       vim.api.nvim_set_hl(ns, "Search",    {})
       vim.api.nvim_set_hl(ns, "CurSearch", {})
@@ -120,10 +91,9 @@ return {
       for _, w in ipairs(vim.api.nvim_list_wins()) do attach_ns(w) end
     end)
 
-    -- Snacks's image placement writes empty lines into the buffer during
-    -- progress/render passes and never resets `modified` — so the buffer
-    -- shows a phantom `[+]` flag after opening an image. Re-assert
-    -- `modified = false` whenever it gets set on an image-filetype buffer.
+    -- Snacks's image placement leaves `modified` set on image buffers (it
+    -- writes blank lines during render passes), showing a phantom `[+]`.
+    -- Re-assert modified=false whenever it flips.
     vim.api.nvim_create_autocmd("FileType", {
       pattern = "image",
       group = vim.api.nvim_create_augroup("snacks_image_unmodified", { clear = true }),
@@ -136,24 +106,13 @@ return {
     })
     opts.picker = opts.picker or {}
 
-    -- Ctrl/Cmd + Up/Down: scroll a picker's list a few lines at a time,
-    -- mirroring the viewport-scroll keymap used in normal buffers (see
-    -- config/keymaps.lua). This is what makes the chord scroll the left
-    -- explorer and right git_tree sidebars — they're snacks pickers, so
-    -- the global <C-Up>/<C-Down> normal-mode mapping doesn't reach their
-    -- list windows; the picker's own keymap layer does.
-    --
-    -- `list:scroll(±n)` shifts the view n lines and drags the selection
-    -- along (clamped into view) — the list analogue of <C-y>/<C-e>.
-    -- Snacks's built-in list_scroll_up/down jump by the window's `scroll`
-    -- option (~half the list height); we want the same small, steady step
-    -- as the editor, so we scroll a fixed few lines instead.
-    --
-    -- Bound on the LIST window only: focus lands on the list when you nav
-    -- into either sidebar (git-sidebar.lua bounces input → list), and the
-    -- INPUT window already binds <C-Up>/<C-Down> to search-history nav,
-    -- which we leave intact. Set at the global picker level so every
-    -- picker gets it, not just the two sidebars.
+    -- <C-Up>/<C-Down>: scroll a picker's list a few lines at a time, matching
+    -- the viewport-scroll keymap in normal buffers (keymaps.lua). The global
+    -- normal-mode mapping doesn't reach picker list windows, so bind it on the
+    -- picker's own keymap layer. `list:scroll(±n)` shifts the view and drags
+    -- the selection along; snacks's built-in list_scroll jumps by half a page,
+    -- we want the same small steady step as the editor. List window only —
+    -- the input window binds <C-Up>/<C-Down> to search-history nav.
     local picker_scroll_lines = 3
     opts.picker.actions = vim.tbl_deep_extend("force", opts.picker.actions or {}, {
       list_scroll_up_lines = function(picker) picker.list:scroll(-picker_scroll_lines) end,
@@ -175,65 +134,49 @@ return {
       opts.picker.sources.explorer or {},
       {
         hidden = true,
-        -- Don't list git-ignored files. In big repos these are the bulk
-        -- of the working tree (Python .venv, __pycache__, build output —
-        -- e.g. ov-dp3-data-projects has 283k ignored files / 6.1G), and
-        -- listing them makes the explorer's tree walk + git-status
-        -- enumeration re-run over all of them on every refresh, which is
-        -- the dominant source of save/movement lag. hidden=true still
-        -- shows non-ignored dotfiles (.github, .gitignore, etc.).
+        -- Don't list git-ignored files. In big repos they're the bulk of the
+        -- tree (283k ignored / 6.1G in ov-dp3-data-projects), and listing them
+        -- makes every refresh's tree walk + git-status enumeration run over all
+        -- of them — the dominant save/movement lag. hidden=true still shows
+        -- non-ignored dotfiles. Toggle with `I` at runtime.
         ignored = false,
-        -- Custom layout: list first (so the file tree starts at the
-        -- very top of the sidebar), input pinned to the bottom as a
-        -- single borderless row. We can't use snacks's `auto_hide` /
-        -- layout-`hidden` to remove the input — they call win:close()
-        -- on it, which nils its scratch buf, and then explorer/actions
-        -- crashes the next time it calls input:set() (e.g. on
-        -- confirm). Keeping the input alive at the bottom dodges that
-        -- entirely, and the list still gets row 0.
-        -- Keep width in sync with git-sidebar.lua's LEFT_SIDEBAR_WIDTH.
+        -- Custom layout: list first (tree starts at the top of the sidebar),
+        -- input pinned to the bottom as one borderless row. snacks's auto_hide
+        -- / layout-hidden can't drop the input — they close its scratch win,
+        -- then explorer actions crash on the next input:set(). Keeping it alive
+        -- at the bottom dodges that. Width in sync with git-sidebar.lua.
         layout = {
           preset = "sidebar",
           preview = false,
           layout = {
             box = "vertical",
             -- Must set position explicitly: snacks's preset resolver
-            -- (config/init.lua:225) short-circuits the preset merge as
-            -- soon as we supply our own `layout[1]`, so position="left"
-            -- from the sidebar preset never reaches us — without this
-            -- the explorer opens as a centred float instead of a left
-            -- split, and the editor + buffer tabs shuffle around it.
+            -- short-circuits the preset merge once we supply our own layout[1],
+            -- so position="left" from the sidebar preset never reaches us —
+            -- without this the explorer opens as a centred float.
             position = "left",
             width = 35,
             { win = "list",  border = "none" },
             { win = "input", height = 1, border = "none" },
           },
         },
-        -- A named action goes through snacks's action resolver, which
-        -- captures the picker via closure. Function-form key handlers
-        -- receive `self = the snacks.win` (no picker reference), so a
-        -- raw inline function crashes inside toggle_focus.
+        -- Named actions go through snacks's resolver, which captures the picker
+        -- via closure. Function-form key handlers receive `self = the
+        -- snacks.win` (no picker), so a raw inline function crashes inside
+        -- toggle_focus.
         actions = {
           exit_search = function(picker)
             if vim.fn.mode():sub(1, 1) == "i" then vim.cmd.stopinsert() end
-            -- Clear the filter so the list snaps back to the full tree
-            -- instead of staying narrowed to the previous search term.
+            -- Clear the filter so the list snaps back to the full tree.
             if picker.input and picker.input.set then
               pcall(picker.input.set, picker.input, "", "")
             end
             require("snacks.picker.actions").toggle_focus(picker)
           end,
-          -- <C-S-f> from inside the explorer greps *scoped to the tree
-          -- item under the cursor* instead of the whole project. Global
-          -- keymaps don't reach the picker's list window (see the C-Up/Down
-          -- note above), so the scoped variant lives here on the picker's
-          -- own keymap layer; the global <C-S-f> (config/keymaps.lua) still
-          -- greps the whole cwd from anywhere else.
-          --
-          -- `picker:dir()` = the item's own path when it's a directory, else
-          -- the directory containing it — so it works whether you land on a
-          -- folder or a file. `dirs = { dir }` makes the grep search that
-          -- path only.
+          -- <C-S-f> from inside the explorer greps scoped to the tree item
+          -- under the cursor (global keymaps don't reach the picker's list
+          -- window; the global <C-S-f> still greps the whole cwd elsewhere).
+          -- `picker:dir()` = the item's path if a dir, else its containing dir.
           explorer_grep = function(picker)
             local dir = picker:dir()
             require("snacks").picker.grep({
@@ -245,76 +188,49 @@ return {
         win = {
           input = {
             keys = {
-              -- <Esc> = exit search: stopinsert + toggle_focus back to
-              -- the list. We explicitly do NOT call cancel/close — the
-              -- sidebar is pinned and <Esc> must never destroy it.
+              -- <Esc> exits search (stopinsert + toggle_focus back to the
+              -- list); never cancel/close — the sidebar is pinned.
               ["<Esc>"] = { "exit_search", mode = { "i", "n" } },
-              -- Grep scoped to the item under the cursor (see explorer_grep).
               ["<C-S-f>"] = { "explorer_grep", mode = { "i", "n" } },
             },
           },
           list = {
             keys = {
-              -- <Esc> defaults to `cancel` which closes the picker;
-              -- we want it to be inert in the list (just stay in
-              -- normal mode here). Don't reuse exit_search — that one
-              -- calls toggle_focus, which would flip you to the input.
+              -- <Esc> defaults to `cancel` (closes the picker); make it inert
+              -- in the list. Not exit_search — that flips focus to the input.
               ["<Esc>"] = { function() end, mode = { "n" } },
-              -- Toggle git-ignored / hidden files on demand. These are
-              -- snacks explorer defaults, pinned here explicitly so they
-              -- survive our custom key overrides. `ignored` defaults off
-              -- (fast in huge repos); press I to reveal .env / build
-              -- artifacts / .venv when you need them, I again to hide.
+              -- Snacks explorer defaults, pinned so they survive our overrides.
               ["I"] = "toggle_ignored",
               ["H"] = "toggle_hidden",
-              -- Grep scoped to the tree item under the cursor: select a
-              -- folder (or file) and <C-S-f> searches just that subtree,
-              -- instead of the whole project.
               ["<C-S-f>"] = "explorer_grep",
             },
           },
         },
-        -- Render the most-recently-active file in bold.
-        -- Uses the buffer-info `lastused` timestamp so diff scratch
-        -- buffers (which aren't `buflisted`) don't override the bold.
-        --
-        -- Also distinguishes partial-staged files (XY = staged + fresh
-        -- worktree edit, e.g. "MM", "AM"). Snacks's default treats
-        -- these as fully staged. We render the filename as
-        -- modified-unstaged (orange) but keep the staged glyph (purple
-        -- ●) as the icon so it's visually distinct from both
-        -- fully-staged and fully-unstaged.
+        -- Render the most-recently-active file in bold (via `lastused`, so diff
+        -- scratch buffers don't steal it). Also mark partial-staged files
+        -- (staged + fresh worktree edit): filename in modified color, staged
+        -- glyph as the icon — see util/git-format.lua.
         format = function(item, picker)
           local Format = require("snacks.picker.format")
-          local original_status, partial = item.status, false
-          if original_status and #original_status == 2 then
-            local x = original_status:sub(1, 1)
-            local y = original_status:sub(2, 2)
-            if x:match("[MADRC]") and y:match("[MD]") then
-              partial = true
-              item.status = " " .. y
-            end
+          local gitfmt = require("util.git-format")
+          local raw, partial = item.status, false
+          if gitfmt.is_partial_staged(item.status) then
+            partial = true
+            item.status = " " .. raw:sub(2, 2)
           end
           local result = Format.file(item, picker)
           if partial then
-            item.status = original_status
-            local staged_icon = (picker.opts.icons.git or {}).staged or "●"
-            for _, chunk in ipairs(result) do
-              if chunk.virt_text_pos == "right_align" and chunk.virt_text then
-                chunk.virt_text[1] = { staged_icon, "SnacksPickerGitStatusStaged" }
-              end
-            end
+            item.status = raw
+            gitfmt.mark_partial_staged(result, picker)
           end
-          -- active_file() is cached at module scope (see top of file) and
-          -- returns an already-normalized path, so this is cheap per row.
+          -- active_file() is cached and pre-normalized, so this is cheap.
           local current = active_file()
           if item.file and current
               and vim.fs.normalize(item.file) == current then
             for _, hl in ipairs(result) do
-              -- The filename's highlight could be SnacksPickerFile OR a
-              -- SnacksPickerGitStatus* if the file has git changes. Swap
-              -- to a Bold variant either way, defining it lazily so it
-              -- inherits whatever color snacks set up at runtime.
+              -- The filename hl is SnacksPickerFile OR a SnacksPickerGitStatus*
+              -- if changed. Swap to a lazily-defined Bold variant either way so
+              -- it inherits whatever color snacks set at runtime.
               if hl.field == "file" and type(hl[2]) == "string"
                   and hl[2]:match("^SnacksPicker") then
                 local bold = hl[2] .. "Bold"

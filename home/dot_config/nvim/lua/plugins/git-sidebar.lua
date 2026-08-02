@@ -1,7 +1,5 @@
--- Persistent right-side "Source Control" sidebar with a TREE view of git
--- changes. Built on a custom snacks picker source so we get tree
--- rendering + fast `git status` data, without committing snacks source
--- code into our repo.
+-- Persistent right-side "Source Control" sidebar: a tree view of git changes,
+-- built on a custom snacks picker source for tree rendering + fast git status.
 
 local function find_main_window()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -16,7 +14,7 @@ end
 -- Keep in sync with the explorer layout width in snacks.lua.
 local RIGHT_SIDEBAR_WIDTH = 35
 
--- Set of paths the user has collapsed in the git tree sidebar.
+-- Paths the user has collapsed in the git tree.
 local collapsed = {}
 
 local function open_file(picker, item)
@@ -41,9 +39,8 @@ local function open_with_diff(item)
   local target = find_main_window()
   if target then vim.api.nvim_set_current_win(target) end
   vim.cmd("edit " .. vim.fn.fnameescape(item.file))
-  -- Poll for gitsigns to attach to the new buffer before calling
-  -- diffthis. The defer-by-100ms approach raced when gitsigns took
-  -- longer to attach, causing the diff to silently no-op.
+  -- Poll for gitsigns to attach before diffthis; a fixed defer raced when
+  -- gitsigns took longer, silently no-op'ing the diff.
   local function try_diff(attempts)
     if attempts > 30 then return end
     if vim.b.gitsigns_status_dict then
@@ -55,9 +52,8 @@ local function open_with_diff(item)
   vim.defer_fn(function() try_diff(0) end, 30)
 end
 
--- Cache of `git status` output. Invalidated explicitly when git state
--- may have changed (file save, focus gain, stage action, manual refresh)
--- so that folder toggles re-render instantly without re-running git.
+-- Cache of `git status`, invalidated explicitly when git state may have changed
+-- (save, focus gain, stage, manual refresh) so folder toggles re-render instantly.
 local status_cache = { cwd = nil, files = nil }
 
 local function invalidate_status_cache()
@@ -96,13 +92,10 @@ local function read_git_status(cwd)
   return files
 end
 
--- Async status fetch: runs `git status` off the main loop, fills the
--- cache, then invokes `cb`. The event-driven refresh (save / focus-gain)
--- uses this instead of the blocking io.popen so a slow `git status`
--- (huge working trees — e.g. ~1s in ov-dp3-data-projects) can't freeze
--- the UI. read_git_status stays as the synchronous cache-miss fallback
--- for user-initiated finds (initial open, folder toggles), which read
--- the warm cache this fills.
+-- Async status fetch off the main loop, fills the cache, then cb(). Used by the
+-- event-driven refresh so a slow `git status` (~1s in huge trees) can't freeze
+-- the UI. read_git_status stays as the sync cache-miss path for user-initiated
+-- finds (initial open, folder toggles), which read the warm cache this fills.
 local function fetch_git_status_async(cwd, cb)
   local ok = pcall(vim.system,
     { "git", "-C", cwd, "status", "--porcelain=v1", "--untracked-files=all" },
@@ -119,8 +112,8 @@ local function fetch_git_status_async(cwd, cb)
   end
 end
 
--- Custom finder: builds a tree of git-changed files with parent dirs.
--- Uses cached status data so folder collapse/expand is instant.
+-- Custom finder: builds a tree of git-changed files with parent dirs, from the
+-- cached status data so folder collapse/expand is instant.
 local function git_tree_finder(opts, ctx)
   return function(cb)
     local cwd = (ctx and ctx.filter and ctx.filter.cwd) or vim.fn.getcwd()
@@ -147,17 +140,12 @@ local function git_tree_finder(opts, ctx)
       return item
     end
 
-    -- When the index (X) is staged AND the worktree (Y) has a fresh
-    -- change on top (e.g. "MM", "AM"), snacks's git_status treats the
-    -- file as fully staged because the first char matches the staged
-    -- pattern — purple S icon, no hint that there are uncommitted
-    -- edits. Force the display status to the worktree side AND tag the
-    -- item so our custom formatter can render the staged icon (purple
-    -- ●) alongside the modified filename color (orange).
+    -- Partial-staged files (index staged + fresh worktree change) render with
+    -- the worktree status + a flag our formatter reads. See util/git-format.lua.
+    local gitfmt = require("util.git-format")
     local function display_status(xy)
-      local x, y = xy:sub(1, 1), xy:sub(2, 2)
-      if x:match("[MADRC]") and y:match("[MD]") then
-        return " " .. y, true
+      if gitfmt.is_partial_staged(xy) then
+        return " " .. xy:sub(2, 2), true
       end
       return xy, false
     end
@@ -179,8 +167,8 @@ local function git_tree_finder(opts, ctx)
       })
     end
 
-    -- Propagate file statuses up to ancestor directories so a collapsed
-    -- folder can display the aggregate status icon/color.
+    -- Propagate file statuses up to ancestor dirs so a collapsed folder shows
+    -- the aggregate status icon/color.
     local Git = require("snacks.picker.source.git")
     local function add_dir_status(dir_item, status)
       dir_item.dir_status = dir_item.dir_status
@@ -197,8 +185,8 @@ local function git_tree_finder(opts, ctx)
       end
     end
 
-    -- Hide items whose ancestor is collapsed; set `open` flag on dirs
-    -- so the formatter shows open vs closed folder icons correctly.
+    -- Hide items under a collapsed ancestor; set `open` on dirs so the
+    -- formatter shows open vs closed folder icons.
     local function is_hidden(item)
       local p = item.parent
       while p do
@@ -212,8 +200,7 @@ local function git_tree_finder(opts, ctx)
       if not is_hidden(item) then
         if item.dir then
           item.open = not collapsed[item.file]
-          -- Show git status on collapsed dirs (matches snacks.explorer
-          -- behavior: closed folder picks up the aggregate child status).
+          -- Closed dir picks up the aggregate child status (matches explorer).
           item.status = (not item.open) and item.dir_status or nil
         end
         table.insert(visible, item)
@@ -233,8 +220,7 @@ local function git_tree_finder(opts, ctx)
   end
 end
 
--- Helpers used by the leader-key shortcuts below: find the active
--- git_tree picker and its currently-highlighted item.
+-- Find the active git_tree picker and its highlighted item.
 local function current_picker_item()
   local ok, snacks = pcall(require, "snacks")
   if not ok or not snacks.picker then return nil, nil end
@@ -292,10 +278,9 @@ local function leader_discard()
       local quoted = "'" .. cwd:gsub("'", "'\\''") .. "'"
       local file_q = "'" .. item.file:gsub("'", "'\\''") .. "'"
       os.execute("git -C " .. quoted .. " restore -- " .. file_q .. " 2>/dev/null")
+      -- restore doesn't touch untracked files; clean -f removes them.
       os.execute("git -C " .. quoted .. " clean -f -- " .. file_q .. " 2>/dev/null")
-      -- For untracked files: `restore` doesn't handle them; clean -f removes.
       invalidate_status_cache()
-      -- Reload the affected buffer if it's open
       for _, buf in ipairs(vim.api.nvim_list_bufs()) do
         if vim.api.nvim_buf_get_name(buf) == item.file then
           vim.api.nvim_buf_call(buf, function() vim.cmd("checktime") end)
@@ -312,23 +297,12 @@ return {
     opts = function(_, opts)
       opts.picker = opts.picker or {}
       opts.picker.sources = opts.picker.sources or {}
-      -- Format wrapper: renders normally via the built-in file format,
-      -- but for files whose XY status combines a staged change AND a
-      -- fresh worktree change (item.partial_staged), it replaces the
-      -- right-aligned status icon with the staged glyph (●) colored
-      -- purple, while leaving the filename in the modified (orange)
-      -- color the underlying format already applied. This makes
-      -- partial-staged files visually distinct from both fully-staged
-      -- and fully-unstaged files.
+      -- Renders normally, then for partial-staged files (item.partial_staged)
+      -- swaps the status icon to the purple staged glyph. See util/git-format.
       local function git_tree_format(item, picker)
-        local Format = require("snacks.picker.format")
-        local result = Format.file(item, picker)
-        if not item.partial_staged then return result end
-        local staged_icon = (picker.opts.icons.git or {}).staged or "●"
-        for _, chunk in ipairs(result) do
-          if chunk.virt_text_pos == "right_align" and chunk.virt_text then
-            chunk.virt_text[1] = { staged_icon, "SnacksPickerGitStatusStaged" }
-          end
+        local result = require("snacks.picker.format").file(item, picker)
+        if item.partial_staged then
+          require("util.git-format").mark_partial_staged(result, picker)
         end
         return result
       end
@@ -344,13 +318,10 @@ return {
           preview = false,
           focus = false,
           show_empty = true,
-          -- Custom layout: list on top (so the git tree starts at row 0
-          -- of the sidebar), input pinned at the bottom as a single
-          -- borderless row. We can't use auto_hide / layout-hidden to
-          -- drop the input — they close its scratch window, and the
-          -- explorer-derived picker actions crash the next time
-          -- input:set() runs. Keeping the input alive at the bottom is
-          -- the simplest workaround that also gives us list at row 0.
+          -- List on top (tree at row 0), input pinned at the bottom as one
+          -- borderless row. auto_hide / layout-hidden can't drop the input —
+          -- they close its scratch window and the explorer-derived actions
+          -- crash on the next input:set(). Keeping it alive is the workaround.
           layout = {
             preset = "sidebar",
             preview = false,
@@ -363,20 +334,13 @@ return {
             },
           },
           confirm = open_file,
-          -- Picker-local actions and keybinds:
-          --   r = refresh (manual cache-invalidating reload)
-          --   s = stage/unstage current file then refresh
+          -- Named actions go through snacks's resolver (captures the picker via
+          -- closure). Function-form key handlers get `self = the snacks.win`,
+          -- so a plain inline function crashes inside toggle_focus.
           actions = {
-            -- A named action goes through snacks's action resolver, which
-            -- captures the picker via closure. Function-form key handlers
-            -- receive `self = the snacks.win`, so a plain inline function
-            -- crashes inside toggle_focus because the win has no .input.
             exit_search = function(picker)
               if vim.fn.mode():sub(1, 1) == "i" then vim.cmd.stopinsert() end
-              -- Clear the search term so the list goes back to showing
-              -- everything. Without this, the filter stays active and
-              -- the list keeps showing only matched items even though
-              -- the input row at the bottom is visually empty.
+              -- Clear the search term so the list shows everything again.
               if picker.input and picker.input.set then
                 pcall(picker.input.set, picker.input, "", "")
               end
@@ -388,15 +352,14 @@ return {
             end,
             git_tree_stage = function(picker)
               local Actions = require("snacks.picker.actions")
-              -- Capture cursor/top NOW: snacks's internal refresh (fired
-              -- by git_stage) consumes-and-clears the target before our
-              -- deferred find runs, so we have to re-force them after.
+              -- Capture cursor/top NOW: snacks's internal refresh (fired by
+              -- git_stage) clears the target before our deferred find runs, so
+              -- re-force them after.
               local saved_cursor = picker.list and picker.list.cursor or nil
               local saved_top = picker.list and picker.list.top or nil
               Actions.git_stage(picker)
-              -- snacks's git_stage runs git asynchronously and calls
-              -- picker:refresh() when done. Invalidate our cache shortly
-              -- after so the next refresh fetches fresh status.
+              -- git_stage runs git async and calls picker:refresh() when done;
+              -- invalidate the cache shortly after so the next find is fresh.
               vim.defer_fn(function()
                 invalidate_status_cache()
                 if picker.list and picker.list.set_target and saved_cursor then
@@ -412,10 +375,8 @@ return {
               keys = {
                 ["s"] = "git_tree_stage",
                 ["r"] = "git_tree_refresh",
-                -- <Esc> defaults to `cancel` which closes the picker;
-                -- we want it inert in the list (stay in normal mode).
-                -- Don't reuse exit_search — that calls toggle_focus
-                -- which would flip you to the input.
+                -- <Esc> inert in the list (default `cancel` would close the
+                -- picker; exit_search would flip focus to the input).
                 ["<Esc>"] = { function() end, mode = { "n" } },
               },
             },
@@ -423,9 +384,6 @@ return {
               keys = {
                 ["s"] = { "git_tree_stage", mode = { "n" } },
                 ["r"] = { "git_tree_refresh", mode = { "n" } },
-                -- See exit_search above for the stopinsert dance and
-                -- why we route through a named action instead of an
-                -- inline function.
                 ["<Esc>"] = { "exit_search", mode = { "i", "n" } },
               },
             },
@@ -436,10 +394,8 @@ return {
       { "<leader>gt", leader_toggle,         desc = "Git: toggle tree sidebar" },
       { "<leader>gs", leader_stage,          desc = "Git: stage/unstage current file" },
       { "<leader>gr", leader_refresh,        desc = "Git: refresh tree sidebar" },
-      -- <leader>gD (capital), not gd: gd is diffview's open (plugins/merge.lua).
-      -- They previously both bound gd and clobbered each other nondeterministically
-      -- depending on lazy load order — which is why gd "sometimes" opened the
-      -- wrong thing and went missing from which-key.
+      -- <leader>gD (capital), not gd: gd is diffview's open (merge.lua). Both
+      -- bound gd once and clobbered each other by lazy load order.
       { "<leader>gD", leader_open_with_diff, desc = "Git: open file with diff vs HEAD" },
       { "<leader>gx", leader_discard,        desc = "Git: discard changes (restore)" },
     },
@@ -451,8 +407,8 @@ return {
         end,
       })
 
-      -- Unlist any `nofile` buffers (e.g. gitsigns' diff scratch buffer)
-      -- so they don't appear as `[No Name]` tabs in the bufferline.
+      -- Unlist `nofile` buffers (e.g. gitsigns' diff scratch) so they don't
+      -- appear as `[No Name]` tabs in the bufferline.
       vim.api.nvim_create_autocmd("BufWinEnter", {
         callback = function(args)
           if vim.bo[args.buf].buftype == "nofile" then
@@ -461,14 +417,10 @@ return {
         end,
       })
 
-      -- The input row sits at the bottom of the sidebar; when you nav
-      -- into the sidebar with <C-l>/smart-splits from the main editor,
-      -- vim picks the window your cursor row lines up with — which is
-      -- often the input. Bounce focus from input -> list whenever the
-      -- previous window was NOT this picker's own list (i.e. you came
-      -- from outside via window nav, not from `/`). When the input
-      -- already has a search term, leave focus alone so an active
-      -- search isn't disrupted.
+      -- When you nav into the sidebar via window motion, vim picks the window
+      -- your cursor row lines up with — often the bottom input. Bounce focus
+      -- input → list, unless you came from the list itself (via `/`) or a
+      -- search term is active (don't disrupt it).
       vim.api.nvim_create_autocmd("WinEnter", {
         callback = function()
           if vim.bo.filetype ~= "snacks_picker_input" then return end
@@ -499,13 +451,10 @@ return {
       })
 
 
-      -- Follow the current file in the git tree: when you open a file
-      -- (e.g. from the explorer), move the git_tree list cursor to that
-      -- file's item so it stays in sync — mirroring snacks.explorer's
-      -- built-in follow_file. Only changed files appear in the tree, so
-      -- opening a clean file simply leaves the highlight where it was.
-      -- Skips when the picker is focused (you're navigating it yourself)
-      -- or when a search is active (don't fight the filter).
+      -- Follow the current file in the git tree: on opening a file, move the
+      -- list cursor to its item (mirrors explorer's follow_file). Only changed
+      -- files are in the tree, so a clean file leaves the highlight put. Skips
+      -- when the picker is focused or a search is active.
       vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter" }, {
         callback = function(args)
           if vim.bo[args.buf].buftype ~= "" then return end
@@ -536,8 +485,7 @@ return {
         end,
       })
 
-      -- Debounced refresh of the git_tree picker on events that may
-      -- have changed git state.
+      -- Debounced refresh on events that may have changed git state.
       local refresh_timer
       local function refresh_git_picker()
         if refresh_timer then
@@ -546,32 +494,27 @@ return {
         end
         refresh_timer = vim.defer_fn(function()
           refresh_timer = nil
-          -- Fetch git status ASYNC, then re-find from the now-warm cache.
-          -- The old path invalidated the cache and called find(), which
-          -- ran a blocking io.popen `git status` on the UI thread —
-          -- ~1s freeze on save in large repos. Now the git call is off
-          -- the main loop and find() just reads the cache it filled.
+          -- Fetch status async, then re-find from the warm cache. Doing it
+          -- sync (invalidate + find, which runs a blocking io.popen) froze the
+          -- UI ~1s per save in large repos.
           fetch_git_status_async(vim.fn.getcwd(), function()
             local ok, snacks = pcall(require, "snacks")
             if not ok or not snacks.picker then return end
             for _, p in ipairs(snacks.picker.get({ source = "git_tree" }) or {}) do
-              -- Preserve cursor/top across the re-find, else the tree
-              -- jumps back to the top on every save / focus-gain. Same
-              -- pattern as open_file's folder-toggle and git_tree_stage.
+              -- Preserve cursor/top so the tree doesn't jump to the top on
+              -- every save / focus-gain.
               if p.list and p.list.set_target then
                 pcall(p.list.set_target, p.list)
               end
               pcall(p.find, p)
             end
 
-            -- Also force the LEFT explorer sidebar to re-read git status.
-            -- snacks.explorer caches git status for 15 min and only
-            -- invalidates via a `.git` fs-watcher — unreliable on macOS —
-            -- so in-editor git ops (fugitive commit, gitsigns stage) never
-            -- show up until you reopen nvim. Marking the cache stale (the
-            -- same call the watcher makes) + re-find picks them up on these
-            -- triggers instead. explorer's finder re-runs `git status` on
-            -- find, so this stays async/non-blocking.
+            -- Force the LEFT explorer to re-read git status too. snacks caches
+            -- explorer git status for 15 min, invalidated only by a `.git`
+            -- fs-watcher (unreliable on macOS) — so in-editor git ops never
+            -- showed up until reopen. Marking the cache stale (the watcher's
+            -- own call) + re-find picks them up; explorer's finder re-runs
+            -- `git status` on find, so this stays non-blocking.
             local EGit = require("snacks.explorer.git")
             for _, p in ipairs(snacks.picker.get({ source = "explorer" }) or {}) do
               if not p.closed then
@@ -592,21 +535,18 @@ return {
         { "BufWritePost", "FocusGained", "DirChanged", "ShellCmdPost", "TermClose" },
         { callback = refresh_git_picker }
       )
-      -- The two in-editor git paths that touch the index without a save
-      -- or a focus change: fugitive commands fire User FugitiveChanged,
-      -- gitsigns hunk-staging fires User GitSignsUpdate. Debounced by
-      -- refresh_git_picker's own timer, so the GitSignsUpdate storm during
+      -- The two in-editor git paths that touch the index without a save or
+      -- focus change: fugitive fires User FugitiveChanged, gitsigns hunk-staging
+      -- fires User GitSignsUpdate. Debounced, so the GitSignsUpdate storm during
       -- editing collapses into one refresh.
       vim.api.nvim_create_autocmd("User", {
         pattern = { "FugitiveChanged", "GitSignsUpdate" },
         callback = refresh_git_picker,
       })
 
-      -- Resolve an orphaned diff window: one window left in diff mode
-      -- means its partner just went away. If the orphan holds a scratch
-      -- (nofile) buffer like gitsigns' HEAD view, close that window. If
-      -- it holds a normal file buffer, just turn off diff mode so the
-      -- file stays visible without the diff highlighting.
+      -- One window left in diff mode means its partner went away. If the orphan
+      -- holds a scratch (nofile) buffer like gitsigns' HEAD view, close it; if a
+      -- normal file, just turn diff mode off so the file stays visible.
       local function cleanup_orphan_diff()
         local diff_wins = {}
         for _, w in ipairs(vim.api.nvim_list_wins()) do
@@ -625,8 +565,8 @@ return {
         return true
       end
 
-      -- Wipe orphaned listed buffers so :q closes both window and tab,
-      -- and clean up orphaned diff windows when their partner goes away.
+      -- Wipe orphaned listed buffers so :q closes both window and tab, and clean
+      -- up orphaned diff windows when their partner goes away.
       vim.api.nvim_create_autocmd("WinClosed", {
         callback = function(args)
           local closed_win = tonumber(args.match)
@@ -657,9 +597,8 @@ return {
         end,
       })
 
-      -- <leader>bd (Snacks.bufdelete) keeps the window alive but pulls
-      -- the file out from under us — no WinClosed fires, but a buffer
-      -- has gone away. Re-check for orphaned diffs after such events.
+      -- <leader>bd (Snacks.bufdelete) keeps the window but pulls the file out —
+      -- no WinClosed fires, so re-check for orphaned diffs on buffer removal.
       vim.api.nvim_create_autocmd({ "BufDelete", "BufWipeout" }, {
         callback = function()
           vim.schedule(function()
