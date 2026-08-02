@@ -37,6 +37,11 @@ return {
   },
   opts = function(_, opts)
     opts.dashboard = vim.tbl_deep_extend("force", opts.dashboard or {}, { enabled = false })
+    -- Kill snacks's smooth-scroll animation. It queues an animation per scroll
+    -- op, which backs up when a terminal can't repaint fast enough — felt as
+    -- laggy scrolling. Our own <C-Up>/<C-Down> wheel scroll (keymaps.lua) is
+    -- instant, so this layer only fights it.
+    opts.scroll = { enabled = false }
     -- Inline image previews via the Kitty graphics protocol (Ghostty supports
     -- it natively). PNG/JPG/GIF need no deps; SVG/PDF/AVIF need `imagemagick`
     -- on PATH. `svg` isn't in snacks's default allowlist, so add it — the

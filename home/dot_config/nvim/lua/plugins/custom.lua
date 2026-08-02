@@ -118,7 +118,10 @@ return {
   -- tmux/zellij/wezterm/kitty from environment.
   {
     "mrjones2014/smart-splits.nvim",
-    lazy = false,
+    -- Deferred off the startup path (its plugin file sources at ~25ms). The
+    -- nav/resize keymaps require it lazily at press-time, so VeryLazy is early
+    -- enough. Default lazy=false (lazy.lua) is why it was eager.
+    event = "VeryLazy",
     opts = {},
   },
 }
