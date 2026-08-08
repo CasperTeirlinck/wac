@@ -11,7 +11,11 @@ SOURCES=(
   "https://github.com/mattpocock/skills.git|skills/engineering/domain-modeling|domain-modeling"
   "https://github.com/mattpocock/skills.git|skills/engineering/grill-with-docs|grill-with-docs"
   "https://github.com/mattpocock/skills.git|skills/productivity/handoff|handoff"
-  "https://github.com/mattpocock/skills.git|skills/productivity/writing-great-skills|writing-great-skills"
+  "https://github.com/mattpocock/skills.git|skills/productivity/teach|teach"
+  "https://github.com/mattpocock/skills.git|skills/productivity/writing-for-agents|writing-for-agents"
+  "https://github.com/mattpocock/skills.git|skills/engineering/tdd|tdd"
+  "https://github.com/mattpocock/skills.git|skills/engineering/codebase-design|codebase-design"
+  "https://github.com/mattpocock/skills.git|skills/engineering/improve-codebase-architecture|improve-codebase-architecture"
 )
 
 TMP_DIR=""
