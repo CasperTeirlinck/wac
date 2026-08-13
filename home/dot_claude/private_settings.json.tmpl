@@ -19,7 +19,7 @@
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
-  "hooks": {
+  "hooks": {{ if eq .chezmoi.os "windows" }}{}{{ else }}{
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -60,5 +60,5 @@
         ]
       }
     ]
-  }
+  }{{ end }}
 }

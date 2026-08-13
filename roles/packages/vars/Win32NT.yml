@@ -1,6 +1,8 @@
 windows_packages:
   - Microsoft.VisualStudioCode
   - Anthropic.ClaudeCode
+  - Git.Git
+  - jqlang.jq
   - Casey.Just
   - DoltHub.Dolt
   - Neovim.Neovim

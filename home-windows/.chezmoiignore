@@ -1,0 +1,5 @@
+# Unix-only bits of dot_claude: tmux hooks and macOS junk don't belong on Windows.
+# statusline-command.sh stays: it drives the statusline on Windows too (needs bash + jq on PATH).
+.claude/tmux-agent-status.sh
+.claude/.get_skills.sh
+.claude/.DS_Store
