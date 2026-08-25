@@ -2,6 +2,12 @@
 
 These rules govern all code you write and every file you touch, not only new code.
 
+## Core principles
+
+- **DRY (Don't Repeat Yourself).** One authority per fact or behavior. Before writing something, look for what already does it here and reuse that; when the same logic appears twice, lift it to the place both callers route through.
+- **KISS (Keep It Simple, Stupid).** The boring solution that a reader follows at a glance wins over the clever one. No indirection, no generality, no cleverness that the current problem doesn't demand.
+- **YAGNI (You Aren't Gonna Need It).** Build what is asked for, nothing for a need that hasn't arrived. No interface with one implementation, no config for a value that never changes, no scaffolding "for later".
+
 ## Docstrings & comments
 
 - **Docstrings say WHAT, not HOW.** One line stating what the thing _is_ or does, never how it does it (no algorithm, steps, or edge-case handling). The HOW, including edge-case rationale, goes in an inline comment beside the code it explains. A docstring running to several paragraphs is mostly noise: cut it.
