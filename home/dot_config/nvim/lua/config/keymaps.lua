@@ -59,6 +59,10 @@ map({ "n", "x", "i" }, "<C-Down>", wheel("down"), { desc = "Scroll down" })
 -- `jk` exits insert mode (fast <Esc> without leaving the home row).
 map("i", "jk", "<Esc>", { desc = "Escape insert mode" })
 
+-- Zoom: fullscreen the current window over the sidebars (explorer, git tree);
+-- press again to restore the layout.
+map("n", "<leader>z", function() Snacks.zen.zoom() end, { desc = "Toggle zoom (focus editor)" })
+
 -- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C, so bind
 -- <C-c>. The `my ... `y` pattern marks the cursor before yank and restores
 -- after, so it stays put instead of jumping to the selection start.

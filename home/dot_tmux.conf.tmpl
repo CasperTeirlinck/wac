@@ -2,18 +2,19 @@
 # See: https://github.com/christoomey/vim-tmux-navigator
 is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|l?n?vim?x?)(diff)?$'"
-# Same idea for an inner tmux client (launched via `tmi` on the `inner` socket)
-# running in the active pane — match a foreground process whose comm is
-# `tmux`, optionally with a `: client` / `: server` suffix. macOS reports the
-# bare `tmux` in comm, but Linux tmux calls setproctitle() and ps shows
-# `tmux: client` for the client process; without the optional `(:.*)?` tail
-# the regex would miss on Linux/WSL and `C-a x` etc. would fall through to
-# the outer pane instead of being forwarded to the inner tmux.
-is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
+# Same idea for a nested stack-session client (the tabs pane launched via
+# `tmi`, see ~/.config/tmux/stack-session.sh) running in the active pane —
+# match a foreground process whose comm is `tmux`, optionally with a
+# `: client` / `: server` suffix. macOS reports the bare `tmux` in comm, but
+# Linux tmux calls setproctitle() and ps shows `tmux: client` for the client
+# process; without the optional `(:.*)?` tail the regex would miss on
+# Linux/WSL and `C-a x` etc. would fall through to the outer pane instead of
+# being forwarded to the stack session.
+is_stack_client="ps -o state= -o comm= -t '#{pane_tty}' \
     | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?tmux(:.*)?$'"
 
-# Format-based "vim OR inner-tmux" detector for the HELD scroll chord
-# (C-Up/C-Down). The $is_vim / $is_inner_tmux pipelines above shell out to
+# Format-based "vim OR stack-client" detector for the HELD scroll chord
+# (C-Up/C-Down). The $is_vim / $is_stack_client pipelines above shell out to
 # `ps` on every invocation — fine for a one-shot prefix key, but when you
 # HOLD C-Up/C-Down the OS key-repeat fires this dozens of times a second,
 # each spawning a subprocess. tmux serialises them and you get seconds of
@@ -21,7 +22,7 @@ is_inner_tmux="ps -o state= -o comm= -t '#{pane_tty}' \
 # entirely, which is why it's always smooth). This matches
 # pane_current_command via a tmux format instead — evaluated internally,
 # zero subprocesses — so a held key stays cheap. Use with `if-shell -F`.
-is_vim_or_inner_f="#{m/ri:^(g?(view|l?n?vim?x?)(diff)?|tmux(:.*)?)$,#{pane_current_command}}"
+is_vim_or_stack_f="#{m/ri:^(g?(view|l?n?vim?x?)(diff)?|tmux(:.*)?)$,#{pane_current_command}}"
 
 # Low but non-zero: at 1ms tmux forwards a lone Esc before the rest of a
 # multi-byte sequence arrives, so terminal query/resize *responses* (e.g.
@@ -76,10 +77,13 @@ set-option -g status-justify left
 # before tmux redraws the status bar after the hook fires; with `-b` the
 # initial post-attach render uses the stale seeded `1`, and the bridge cap
 # only appears after the user manually switches a tab.
+# Stored per SESSION (set -t, no -g): tab-sessions (stack.conf) share this
+# server and each status bar needs its own index; session user options shadow
+# the global seed in format resolution.
 set -g @active_window_index 1
-set-hook -g session-window-changed 'run-shell "tmux set -g @active_window_index #{window_index}"'
-set-hook -g client-attached        'run-shell "tmux set -g @active_window_index #{window_index}"'
-set-hook -g after-select-window    'run-shell "tmux set -g @active_window_index #{window_index}"'
+set-hook -g session-window-changed 'run-shell "tmux set -t \"#{hook_session}\" @active_window_index #{window_index}"'
+set-hook -g client-attached        'run-shell "tmux set -t \"#{hook_session}\" @active_window_index #{window_index}"'
+set-hook -g after-select-window    'run-shell "tmux set -t \"#{hook_session}\" @active_window_index #{window_index}"'
 
 # Scroll length
 set-option -g history-limit 10000
@@ -95,7 +99,7 @@ bind-key -T copy-mode WheelDownPane send-keys -X -N 1 scroll-down
 
 # Clipboard: mouse-drag selects → release copies to system clipboard via OSC52.
 # Ghostty natively accepts OSC52; with `set-clipboard on` the outer tmux also
-# forwards OSC52 emitted by a nested inner tmux up to Ghostty.
+# forwards OSC52 emitted by a nested stack-session client up to Ghostty.
 # NOTE: the feature pattern must match `default-terminal` (screen-256color),
 # not Ghostty's outer $TERM — tmux uses its own TERM when adding the `Ms`
 # terminfo cap that enables OSC52 emission.
@@ -143,20 +147,21 @@ set-window-option -g window-status-current-style fg=#000000,bg=default
 # Empty separator → caps render flush against the next tab; the thin-cap
 # glyph between two inactive tabs still provides visual separation.
 set-window-option -g window-status-separator ''
-set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
+# Single global format, shared with the stack tab-sessions (stack.conf).
+set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?window_zoomed_flag, ,}#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
 
 # Moving between panes
 unbind Up
 unbind Down
 unbind Left
 unbind Right
-# Order: vim → inner tmux → outer select-pane. Vim gets the prefix+arrow it
-# expects ({{$prefix}}); an inner tmux gets C-e+arrow (its own prefix) so its
-# matching bindings then run select-pane inside the inner server.
-bind-key Up    if-shell "$is_vim" "send-keys {{$prefix}} Up"    "if-shell \"$is_inner_tmux\" \"send-keys C-e Up\"    \"select-pane -U\""
-bind-key Down  if-shell "$is_vim" "send-keys {{$prefix}} Down"  "if-shell \"$is_inner_tmux\" \"send-keys C-e Down\"  \"select-pane -D\""
-bind-key Left  if-shell "$is_vim" "send-keys {{$prefix}} Left"  "if-shell \"$is_inner_tmux\" \"send-keys C-e Left\"  \"select-pane -L\""
-bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_inner_tmux\" \"send-keys C-e Right\" \"select-pane -R\""
+# Order: vim → stack client → outer select-pane. Vim gets the prefix+arrow it
+# expects ({{$prefix}}); a stack client gets C-e+arrow (its tabs-prefix entry
+# key) so the stack-prefix bindings run select-pane inside the tab-session.
+bind-key Up    if-shell "$is_vim" "send-keys {{$prefix}} Up"    "if-shell \"$is_stack_client\" \"send-keys C-e Up\"    \"select-pane -U\""
+bind-key Down  if-shell "$is_vim" "send-keys {{$prefix}} Down"  "if-shell \"$is_stack_client\" \"send-keys C-e Down\"  \"select-pane -D\""
+bind-key Left  if-shell "$is_vim" "send-keys {{$prefix}} Left"  "if-shell \"$is_stack_client\" \"send-keys C-e Left\"  \"select-pane -L\""
+bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_stack_client\" \"send-keys C-e Right\" \"select-pane -R\""
 
 # Ctrl/Cmd + Up/Down: scroll the active pane back through its output (e.g.
 # Claude Code, a TUI, shell scrollback) without reaching for the mouse — the
@@ -164,10 +169,11 @@ bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_
 # the Ctrl+Up/Down CSI sequences (see ghostty/config), arriving here as
 # C-Up/C-Down. Three cases, in order:
 #
-#   1. vim OR an inner-tmux pane → forward the raw C-Up/C-Down key so that
+#   1. vim OR a stack-client pane → forward the raw C-Up/C-Down key so that
 #      layer handles it: nvim runs its <C-Up>/<C-Down> viewport-scroll
-#      keymap, and an inner tmux re-runs this same chain for ITS focused
-#      pane (so a Claude Code tab inside the inner server scrolls correctly).
+#      keymap, and a stack client re-runs the same chain (stack.conf) for ITS
+#      focused pane (so a Claude Code tab inside a stack session scrolls
+#      correctly).
 #   2. The focused app has mouse reporting on (mouse_any_flag) → synthesise
 #      mouse-wheel events straight to the app, exactly mimicking the physical
 #      wheel. This is the Claude Code case: Claude captures the wheel and
@@ -181,8 +187,8 @@ bind-key Right if-shell "$is_vim" "send-keys {{$prefix}} Right" "if-shell \"$is_
 #      prompt there's nothing below. The copy-mode-table bindings below let a
 #      repeated press keep scrolling once copy-mode is active (the root -n
 #      binding stops firing inside copy-mode).
-bind-key -n C-Up   if-shell -F "$is_vim_or_inner_f" "send-keys C-Up"   "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<64;1;1M\"' 'copy-mode -e ; send-keys -X -N 3 scroll-up'"
-bind-key -n C-Down if-shell -F "$is_vim_or_inner_f" "send-keys C-Down" "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<65;1;1M\"' 'if-shell -F \"#{pane_in_mode}\" \"send-keys -X -N 3 scroll-down\"'"
+bind-key -n C-Up   if-shell -F "$is_vim_or_stack_f" "send-keys C-Up"   "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<64;1;1M\"' 'copy-mode -e ; send-keys -X -N 3 scroll-up'"
+bind-key -n C-Down if-shell -F "$is_vim_or_stack_f" "send-keys C-Down" "if-shell -F '#{mouse_any_flag}' 'send-keys -N 3 Escape \"[<65;1;1M\"' 'if-shell -F \"#{pane_in_mode}\" \"send-keys -X -N 3 scroll-down\"'"
 bind-key -T copy-mode-vi C-Up   send-keys -X -N 3 scroll-up
 bind-key -T copy-mode-vi C-Down send-keys -X -N 3 scroll-down
 bind-key -T copy-mode    C-Up   send-keys -X -N 3 scroll-up
@@ -201,10 +207,10 @@ set -g mode-keys vi
 
 # Enter select-mode explicitly with `prefix v` (mnemonic: visual). Scrolling
 # (C-Up) deliberately does NOT switch modes — it just scrolls. `prefix [` is
-# taken (window nav), hence v. In an inner-tmux pane, forward `C-e v` so the
-# INNER server enters copy-mode on its own focused pane (e.g. a shell tab),
-# not on the outer pane that wraps it.
-bind-key v if-shell "$is_inner_tmux" "send-keys C-e v" "copy-mode"
+# taken (window nav), hence v. In a stack-client pane, forward `C-e v` so
+# the tab-session enters copy-mode on its own focused pane (e.g. a shell
+# tab), not on the outer pane that wraps it.
+bind-key v if-shell "$is_stack_client" "send-keys C-e v" "copy-mode"
 
 # Plain movement collapses any active selection first — an unshifted key
 # deselects, exactly like a GUI editor — then moves. clear-selection is a
@@ -260,10 +266,10 @@ bind-key / command-prompt -p "send pane to window:" "join-pane -v -t '%%'"
 # Deleting panes
 unbind x
 # bind-key x kill-pane # no confirm-before because cannot customize (yet) the confirm key
-# Same vim → inner-tmux → outer fallthrough as the Arrow chain: in an
-# inner-tmux pane, forward C-e x so inner's default `prefix x` (confirm +
-# kill-pane) closes the inner pane instead of the outer one wrapping it.
-bind-key x if-shell "$is_vim" "send-keys {{$prefix}} x" "if-shell \"$is_inner_tmux\" \"send-keys C-e x\" \"kill-pane\""
+# Same vim → stack-client → outer fallthrough as the Arrow chain: in a
+# stack-client pane, forward C-e x so the stack-prefix `x` binding closes the
+# tab pane instead of the outer one wrapping it.
+bind-key x if-shell "$is_vim" "send-keys {{$prefix}} x" "if-shell \"$is_stack_client\" \"send-keys C-e x\" \"kill-pane\""
 
 # Moving between windows
 unbind ,
@@ -278,10 +284,23 @@ bind-key -r , previous-window
 bind-key -r . next-window
 bind-key -r < swap-window -d -t -1
 bind-key -r > swap-window -d -t +1
-bind-key -r '[' if-shell "$is_vim" "send-keys {{$prefix}} '['" "if-shell \"$is_inner_tmux\" \"send-keys C-e '['\" \"previous-window\""
-bind-key -r ']' if-shell "$is_vim" "send-keys {{$prefix}} ']'" "if-shell \"$is_inner_tmux\" \"send-keys C-e ']'\" \"next-window\""
+bind-key -r '[' if-shell "$is_vim" "send-keys {{$prefix}} '['" "if-shell \"$is_stack_client\" \"send-keys C-e '['\" \"previous-window\""
+bind-key -r ']' if-shell "$is_vim" "send-keys {{$prefix}} ']'" "if-shell \"$is_stack_client\" \"send-keys C-e ']'\" \"next-window\""
 bind-key -r '{' if-shell "$is_vim" "send-keys {{$prefix}} '{'" "swap-window -d -t -1"
 bind-key -r '}' if-shell "$is_vim" "send-keys {{$prefix}} '}'" "swap-window -d -t +1"
+
+# Session/window trees hide tab-sessions (stack.conf): they belong to their
+# workspace window, not the session list.
+bind s choose-tree -Zs -f '#{?#{m:stack-*,#{session_name}},0,1}'
+bind w choose-tree -Zw -f '#{?#{m:stack-*,#{session_name}},0,1}'
+
+# Tree mode (prefix-w / prefix-s) extra keys: w = up, s = down, Space =
+# select. Tree-mode keys are hardcoded in tmux (no bindable keytable), but
+# root-table bindings run before the mode sees a key, so intercept these only
+# while a pane is in tree mode and pass the literal key through otherwise.
+bind -n w     if -F '#{==:#{pane_mode},tree-mode}' 'send-keys Up'    'send-keys w'
+bind -n s     if -F '#{==:#{pane_mode},tree-mode}' 'send-keys Down'  'send-keys s'
+bind -n Space if -F '#{==:#{pane_mode},tree-mode}' 'send-keys Enter' 'send-keys Space'
 
 # Resizing panes
 unbind S-Up
@@ -291,10 +310,10 @@ unbind S-Right
 # Same vim-aware chain as the nav bindings: if the active pane runs vim,
 # forward the chord so smart-splits in nvim can resize the nvim window
 # (and fall through to tmux's resize-pane when nvim hits the edge).
-bind -r S-Up    if-shell "$is_vim" "send-keys {{$prefix}} S-Up"    "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Up\"    \"resize-pane -U 5\""
-bind -r S-Down  if-shell "$is_vim" "send-keys {{$prefix}} S-Down"  "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Down\"  \"resize-pane -D 5\""
-bind -r S-Left  if-shell "$is_vim" "send-keys {{$prefix}} S-Left"  "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Left\"  \"resize-pane -L 5\""
-bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "if-shell \"$is_inner_tmux\" \"send-keys C-e S-Right\" \"resize-pane -R 5\""
+bind -r S-Up    if-shell "$is_vim" "send-keys {{$prefix}} S-Up"    "if-shell \"$is_stack_client\" \"send-keys C-e S-Up\"    \"resize-pane -U 5\""
+bind -r S-Down  if-shell "$is_vim" "send-keys {{$prefix}} S-Down"  "if-shell \"$is_stack_client\" \"send-keys C-e S-Down\"  \"resize-pane -D 5\""
+bind -r S-Left  if-shell "$is_vim" "send-keys {{$prefix}} S-Left"  "if-shell \"$is_stack_client\" \"send-keys C-e S-Left\"  \"resize-pane -L 5\""
+bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "if-shell \"$is_stack_client\" \"send-keys C-e S-Right\" \"resize-pane -R 5\""
 
 unbind m
 bind -r m resize-pane -Z
@@ -322,13 +341,12 @@ set -g mode-style 'fg=#21252b,bg=#abb2bf,bold'
 set -g message-style 'fg=#abb2bf,bg=#3b3f4c'
 set -g message-command-style 'fg=#abb2bf,bg=#3b3f4c'
 
-# Agent sidebar: prefix + a toggles a persistent right-hand pane listing the
-# tree of ALL Claude Code agents across BOTH tmux servers (this outer server
-# and the inner `tmi` server). See ~/.config/tmux/agent-sidebar.sh — it reads
-# the status files written by Claude Code hooks (~/.claude/tmux-agent-status.sh)
-# and joins them to each server's live panes. Bound in the OUTER config only so
-# the sidebar lives in the layout beside nvim + the inner-tabs pane; trigger it
-# from anywhere (even a focused inner pane) with `C-a a`.
+# Agent sidebar: prefix + a toggles a persistent pane listing the tree of ALL
+# Claude Code agents on this server, grouped by session (workspace sessions
+# and the stack-* tab-sessions). See ~/.config/tmux/agent-sidebar.sh — it
+# reads the status files written by Claude Code hooks
+# (~/.claude/tmux-agent-status.sh) and joins them to live panes. Trigger it
+# from anywhere (even a focused stack pane) with `C-a a`.
 bind a run-shell "~/.config/tmux/agent-sidebar.sh toggle"
 
 # Config
@@ -396,3 +414,7 @@ set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,n
 # Same attribute-level-conditional shape as window-status-format above to
 # dodge the tmux 3.6 `,,`-unescape bug — see comment block above for why.
 set -g status-left '#[fg=#21252b,bg=#98c379] #S #[fg=#98c379,bg=#{?#{==:#{@active_window_index},1},#3b3f4c,default},nobold,noitalics,nounderscore]#[default]'
+
+# Tab-session key tables (stack-root / stack-prefix), inert for the outer
+# session; tab-sessions opt in via `key-table` (see stack-session.sh).
+source-file ~/.config/tmux/stack.conf

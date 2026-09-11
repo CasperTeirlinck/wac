@@ -6,17 +6,21 @@
 local map = vim.keymap.set
 
 local function mux_move(dir)
-  -- Inside tmux, if the focused pane is at the server's edge in this direction
-  -- and we're nested (nvim inside an inner tmux), smart-splits' select-pane on
-  -- the inner socket would just stop — so hop to the outer server (`TMUX=`
-  -- targets the default/outer socket). Harmless no-op in a single tmux.
-  if vim.env.TMUX then
-    local at_edge = { left = "pane_at_left", right = "pane_at_right", up = "pane_at_top", down = "pane_at_bottom" }
-    local flag = { left = "-L", right = "-R", up = "-U", down = "-D" }
-    local edge = vim.fn.system({ "tmux", "display-message", "-p", "#{" .. at_edge[dir] .. "}" }):gsub("%s+", "")
-    if edge == "1" then
-      vim.fn.system("TMUX= tmux select-pane " .. flag[dir])
-      return
+  -- Inside a stack- (tab) session, an edge in this direction means the next
+  -- pane lives in the outer layout hosting the tab pane; stack-escape.sh
+  -- resolves that hosting pane from the session's client tty and moves there.
+  -- In any other session smart-splits' own select-pane handles it.
+  if vim.env.TMUX and vim.env.TMUX_PANE then
+    local sess = vim.fn.system({ "tmux", "display-message", "-p", "-t", vim.env.TMUX_PANE, "#{session_name}" }):gsub("%s+", "")
+    if sess:match("^stack%-") then
+      local at_edge = { left = "pane_at_left", right = "pane_at_right", up = "pane_at_top", down = "pane_at_bottom" }
+      local flag = { left = "L", right = "R", up = "U", down = "D" }
+      local edge = vim.fn.system({ "tmux", "display-message", "-p", "-t", vim.env.TMUX_PANE, "#{" .. at_edge[dir] .. "}" }):gsub("%s+", "")
+      if edge == "1" then
+        local ctty = vim.fn.system({ "tmux", "list-clients", "-t", sess, "-F", "#{client_tty}" }):match("[^\n]*") or ""
+        vim.fn.system({ vim.fn.expand("~/.config/tmux/stack-escape.sh"), "move", flag[dir], ctty })
+        return
+      end
     end
   end
   pcall(function()
