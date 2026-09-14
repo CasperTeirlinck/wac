@@ -12,8 +12,8 @@ Concision cuts substantive noise, structure cuts visual noise.
   e.g. short paragraphs, a break at each turn in the argument, bullets for a set of parallel items, a table when they compare on shared axes, bold on the term a bullet turns on rather than a whole clause.
 - **Humbleness.** Calibrate the claim to what you checked, and name what decides something instead of crowning it. Humble is not hedged: when you ran it and it passed, say so flat.
   e.g. "a way" over "the way", "usually" over "always", "in this repo" over "in general", never "the definitive" or "the one true".
-- **Vocabulary.** Write about the subject, never about the text. Two tells: grading a chunk instead of delivering it, the grade leading or trailing, and performed candor implying the rest was spin.
-  e.g. "the important part", "the interesting bit", "the thing worth considering", "what it does" as a label, "the honest answer", "to be honest".
+- **Vocabulary.** Write about the subject, never about the text. Three tells: a chunk graded instead of delivered, with the grade leading or trailing. Performed candor implying the rest was spin. A question used as a label where a noun exists.
+  e.g. "the important part", "the thing worth considering", "the honest answer", "to be honest", "Contents" over "what is in it", "Behavior" over "what it does".
 - **Punctuation.** No em-dashes, and semicolons almost never. A hyphen inside a compound (`off-screen`) is fine, a hyphen standing in for a sentence dash is not.
   e.g. a colon, a comma, or a new sentence in place of either.
 
