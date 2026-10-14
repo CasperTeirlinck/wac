@@ -46,7 +46,7 @@ in {
     pkgs.atuin
     pkgs.eyedropper
     pkgs.gh
-    pkgs.claude-code
+    # pkgs.claude-code
     pkgs.rtk # CLI proxy that trims LLM token usage of common dev commands
     pkgs.imagemagick # SVG/PDF → raster for snacks.image previews in nvim
     pkgs.mermaid-cli # `mmdc` — snacks.image renders ```mermaid blocks inline
