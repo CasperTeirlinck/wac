@@ -2,6 +2,17 @@ alias c='clear'
 alias f='fzf'
 alias tm='tmux'
 alias tmi='~/.config/tmux/stack-session.sh'
+# Bare `wm sidebar` gets --session: the global sidebar puts a pane in every
+# window of every session, including inside the stack tab-sessions, which
+# feedback-loops with the nested layout.
+wm() {
+  if [ "${1:-}" = sidebar ] && ! printf '%s\n' "$@" | grep -qxE -- '-s|--session'; then
+    shift
+    command workmux sidebar --session "$@"
+  else
+    command workmux "$@"
+  fi
+}
 alias e='explorer.exe'
 alias grep='grep --color=always'
 alias uninstall='sudo apt purge --autoremove'

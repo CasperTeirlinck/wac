@@ -85,6 +85,11 @@ set-hook -g session-window-changed 'run-shell "tmux set -t \"#{hook_session}\" @
 set-hook -g client-attached        'run-shell "tmux set -t \"#{hook_session}\" @active_window_index #{window_index}"'
 set-hook -g after-select-window    'run-shell "tmux set -t \"#{hook_session}\" @active_window_index #{window_index}"'
 
+# Guard: a nested client that ends up on a non-stack session (mirroring an
+# outer session inside its own pane) gets bounced back to its home stack
+# session, which is rebuilt first if destroy-unattached already reaped it.
+set-hook -g client-session-changed 'run-shell -b "~/.config/tmux/stack-escape.sh surface \"#{hook_client}\" \"#{client_session}\""'
+
 # Scroll length
 set-option -g history-limit 10000
 
@@ -136,6 +141,9 @@ set-window-option -g pane-base-index 1
 set-option -g renumber-windows on
 
 # Tab formatting
+# Shared tab body for both window-status formats: live per-pane loop while
+# automatic-rename is on, the pinned name (with optional accent) otherwise.
+{{ $tabbody := `#{?automatic-rename,#{P:#{?#{==:#{pane_current_command},workmux},,#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,}},#{?#{==:#{pane_current_command},workmux},,#[bold]#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,}#[nobold]}},#{?@tab_accent,#[fg=green]#[bold],}#W}` }}
 set-option -g status-interval 5
 set-option -g automatic-rename on
 set-window-option -g window-status-style fg=white,bg=default
@@ -148,7 +156,9 @@ set-window-option -g window-status-current-style fg=#000000,bg=default
 # glyph between two inactive tabs still provides visual separation.
 set-window-option -g window-status-separator ''
 # Single global format, shared with the stack tab-sessions (stack.conf).
-set-option -g automatic-rename-format '#{P:#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#{?#{!=:#{pane_index},#{window_panes}}, | ,},#[bold]#{?window_zoomed_flag, ,}#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #[fg=green]#{pane_current_command}#[fg=default],}#[nobold]#{?#{!=:#{pane_index},#{window_panes}}, | ,}}'
+# Panes running the workmux sidebar render as nothing, so the sidebar
+# doesn't show up as a "workmux" segment in every tab name.
+set-option -g automatic-rename-format '#{P:#{?#{==:#{pane_current_command},workmux},,#{?#{!=:#{b:pane_current_path},casper},#{b:pane_current_path},~}#{?#{!=:#{pane_current_command},zsh}, #{pane_current_command},}#{?#{!=:#{pane_index},#{window_panes}}, | ,}}}'
 
 # Moving between panes
 unbind Up
@@ -156,7 +166,7 @@ unbind Down
 unbind Left
 unbind Right
 # Order: vim → stack client → outer select-pane. Vim gets the prefix+arrow it
-# expects ({{$prefix}}); a stack client gets C-e+arrow (its tabs-prefix entry
+# expects ({{$prefix}}); a stack client gets C-e+arrow (its stack-prefix entry
 # key) so the stack-prefix bindings run select-pane inside the tab-session.
 bind-key Up    if-shell "$is_vim" "send-keys {{$prefix}} Up"    "if-shell \"$is_stack_client\" \"send-keys C-e Up\"    \"select-pane -U\""
 bind-key Down  if-shell "$is_vim" "send-keys {{$prefix}} Down"  "if-shell \"$is_stack_client\" \"send-keys C-e Down\"  \"select-pane -D\""
@@ -291,6 +301,11 @@ bind-key -r '}' if-shell "$is_vim" "send-keys {{$prefix}} '}'" "swap-window -d -
 
 # Session/window trees hide tab-sessions (stack.conf): they belong to their
 # workspace window, not the session list.
+# When the focused pane hosts a stack client, open the tree from the window's
+# last-active pane instead: choose-tree's -Z zoom of a stack-hosting pane gets
+# cancelled by workmux's layout enforcement (same cascade as prefix-z), which
+# dumps the picker into the small pane. Zooming a plain pane has no cascade.
+# On cancel, focus stays on that other pane rather than the stack pane.
 bind s choose-tree -Zs -f '#{?#{m:stack-*,#{session_name}},0,1}'
 bind w choose-tree -Zw -f '#{?#{m:stack-*,#{session_name}},0,1}'
 
@@ -317,14 +332,15 @@ bind -r S-Right if-shell "$is_vim" "send-keys {{$prefix}} S-Right" "if-shell \"$
 
 unbind m
 bind -r m resize-pane -Z
+bind z resize-pane -Z
 
 # Window rename: prefix + t prompts for a name, renames the window, and
 # disables automatic-rename for it so the custom name sticks (otherwise
 # automatic-rename-format would overwrite it every status-interval tick).
 # Replaces the default clock-mode binding on `t`.
 unbind t
-bind-key t command-prompt -p "Rename window:" "rename-window '%%' ; setw automatic-rename off"
-bind-key T command-prompt -p "Rename window (styled):" "rename-window '#[fg=green,bold]%%#[fg=default,nobold]' ; setw automatic-rename off"
+bind-key t command-prompt -p "Rename window:" "rename-window '%%' ; setw automatic-rename off ; setw -u @tab_accent"
+bind-key T command-prompt -p "Rename window (styled):" "rename-window '%%' ; setw automatic-rename off ; setw @tab_accent 1"
 
 # Pane border colors
 set -g pane-active-border-style fg=white
@@ -341,13 +357,10 @@ set -g mode-style 'fg=#21252b,bg=#abb2bf,bold'
 set -g message-style 'fg=#abb2bf,bg=#3b3f4c'
 set -g message-command-style 'fg=#abb2bf,bg=#3b3f4c'
 
-# Agent sidebar: prefix + a toggles a persistent pane listing the tree of ALL
-# Claude Code agents on this server, grouped by session (workspace sessions
-# and the stack-* tab-sessions). See ~/.config/tmux/agent-sidebar.sh — it
-# reads the status files written by Claude Code hooks
-# (~/.claude/tmux-agent-status.sh) and joins them to live panes. Trigger it
-# from anywhere (even a focused stack pane) with `C-a a`.
-bind a run-shell "~/.config/tmux/agent-sidebar.sh toggle"
+# Agent sidebar: prefix + a toggles workmux's agent sidebar, scoped to this
+# (outer) session only — stack tab-sessions never get the pane. It lists all
+# agents on the server with jump-to-pane.
+bind a run-shell "workmux sidebar --session"
 
 # Config
 unbind r
@@ -403,8 +416,8 @@ bind-key ? display-popup -E -h 80% -w 80% "tmux list-keys -T prefix | sort | les
 # #3b3f4c so it connects into the active tab body. Thin cap is  (right-
 # bulging outline, U+E0B5) over fg=#5c6370/bg=default — a subtle separator
 # on terminal bg between two inactive tabs.
-set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#21252b,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},,}'
-set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }#W #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
+set -wg window-status-format '#[fg=#abb2bf,bg=default,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }{{ $tabbody }}#{?@workmux_status, #{@workmux_status},} #[fg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#21252b,#5c6370},bg=#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},#3b3f4c,default},nobold,noitalics,nounderscore]#{?#{e|==:#{e|+:#{window_index},1},#{@active_window_index}},,}'
+set -wg window-status-current-format '#[fg=#abb2bf,bg=#3b3f4c,nobold,noitalics,nounderscore]#{?window_zoomed_flag,  , }{{ $tabbody }}#{?@workmux_status, #{@workmux_status},} #[fg=#3b3f4c,bg=default,nobold,noitalics,nounderscore]'
 
 
 # Override status-left AFTER the powerline plugin so the session-name's

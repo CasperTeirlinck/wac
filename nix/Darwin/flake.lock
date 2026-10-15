@@ -56,11 +56,47 @@
         "type": "github"
       }
     },
+    "nixpkgs_2": {
+      "locked": {
+        "lastModified": 1787900134,
+        "narHash": "sha256-VYXO0XZlgj06dxJZRhrD3WoSsvq/c7+/Akyoa22pefw=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "83199d0d373dd3ac2b9a1996b1d0263f76ab7a4c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "darwin": "darwin",
         "home-manager": "home-manager",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "workmux": "workmux"
+      }
+    },
+    "workmux": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_2"
+      },
+      "locked": {
+        "lastModified": 1789644923,
+        "narHash": "sha256-vUlgncc07VAfD+txOT+pjhO1hiHe/AzWFTYxHXqVNgk=",
+        "owner": "CasperTeirlinck",
+        "repo": "workmux",
+        "rev": "9a2787d3f867f4844fbcaef3ecc7768fdb948011",
+        "type": "github"
+      },
+      "original": {
+        "owner": "CasperTeirlinck",
+        "ref": "nested-sessions",
+        "repo": "workmux",
+        "type": "github"
       }
     }
   },

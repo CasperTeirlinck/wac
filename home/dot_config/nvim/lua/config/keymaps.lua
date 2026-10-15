@@ -59,9 +59,27 @@ map({ "n", "x", "i" }, "<C-Down>", wheel("down"), { desc = "Scroll down" })
 -- `jk` exits insert mode (fast <Esc> without leaving the home row).
 map("i", "jk", "<Esc>", { desc = "Escape insert mode" })
 
+-- Snacks picker (explorer / git_tree / buffers) whose list or input window is `win`, or nil.
+local function picker_for_win(win)
+  for _, p in ipairs(Snacks.picker.get() or {}) do
+    if (p.list and p.list.win and p.list.win.win == win) or (p.input and p.input.win and p.input.win.win == win) then
+      return p
+    end
+  end
+end
+
 -- Zoom: fullscreen the current window over the sidebars (explorer, git tree);
--- press again to restore the layout.
-map("n", "<leader>z", function() Snacks.zen.zoom() end, { desc = "Toggle zoom (focus editor)" })
+-- press again to restore the layout. A picker list only renders the rows that fit
+-- its own window and moves the cursor there, so a zen zoom float of it can't
+-- scroll. Pickers toggle their own layout fullscreen instead.
+map("n", "<leader>z", function()
+  local picker = picker_for_win(vim.api.nvim_get_current_win())
+  if picker then
+    picker.layout:maximize()
+  else
+    Snacks.zen.zoom()
+  end
+end, { desc = "Toggle zoom (focus editor)" })
 
 -- Cmd+C: copy to system clipboard. Ghostty forwards Cmd+C as Ctrl+C, so bind
 -- <C-c>. The `my ... `y` pattern marks the cursor before yank and restores
@@ -153,21 +171,12 @@ map("i", "<S-Tab>", "<C-d>",               { desc = "Dedent line" })
 -- is a snacks picker (explorer / git_tree / buffers), yank the highlighted
 -- item's path; otherwise the current buffer's path.
 local function yank_path()
-  local ok, snacks = pcall(require, "snacks")
-  if ok and snacks.picker then
-    local cur_win = vim.api.nvim_get_current_win()
-    for _, p in ipairs(snacks.picker.get() or {}) do
-      local owns = (p.list and p.list.win and p.list.win.win == cur_win)
-                or (p.input and p.input.win and p.input.win.win == cur_win)
-      if owns and p.list and p.list.current then
-        local item = p.list:current()
-        if item and item.file then
-          vim.fn.setreg("+", item.file)
-          vim.notify("Yanked: " .. item.file)
-          return
-        end
-      end
-    end
+  local p = picker_for_win(vim.api.nvim_get_current_win())
+  local item = p and p.list:current()
+  if item and item.file then
+    vim.fn.setreg("+", item.file)
+    vim.notify("Yanked: " .. item.file)
+    return
   end
   local path = vim.fn.expand("%:p")
   if path == "" then

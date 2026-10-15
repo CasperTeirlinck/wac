@@ -14,6 +14,11 @@ in {
     nix.settings.experimental-features = "nix-command flakes";
     # Create /etc/bashrc that loads the nix-darwin environment.
     programs.zsh.enable = true;
+    # ~/.zshrc runs its own cached compinit, bashcompinit and p10k prompt. The /etc/zshrc defaults redo all three
+    # uncached on every shell, which can stall startup for seconds when the completion files are cold.
+    programs.zsh.enableGlobalCompInit = false;
+    programs.zsh.enableBashCompletion = false;
+    programs.zsh.promptInit = "";
     nixpkgs.hostPlatform = "aarch64-darwin";
     # Add ability to used TouchID for sudo authentication
     security.pam.services.sudo_local.touchIdAuth = true;

@@ -10,12 +10,19 @@
         "source": "github",
         "repo": "DietrichGebert/ponytail"
       }
+    },
+    "workmux": {
+      "source": {
+        "source": "github",
+        "repo": "raine/workmux"
+      }
     }
   },
   "enabledPlugins": {
     "posthog@claude-plugins-official": true,
     "lua-lsp@claude-plugins-official": true,
-    "ponytail@ponytail": true
+    "ponytail@ponytail": true,
+    "workmux-status@workmux": true
   },
   "effortLevel": "xhigh",
   "tui": "fullscreen",
@@ -28,35 +35,6 @@
             "type": "command",
             "command": "rtk hook claude"
           }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          { "type": "command", "command": "~/.claude/tmux-agent-status.sh working" }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "*",
-        "hooks": [
-          { "type": "command", "command": "~/.claude/tmux-agent-status.sh working" }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "hooks": [
-          { "type": "command", "command": "~/.claude/tmux-agent-status.sh wait" }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          { "type": "command", "command": "~/.claude/tmux-agent-status.sh done" }
         ]
       }
     ]

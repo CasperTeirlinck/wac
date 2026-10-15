@@ -13,6 +13,11 @@
     depth: 1
     single_branch: yes
 
+# The shell runs with GITSTATUS_AUTO_INSTALL=0, so gitstatusd must already be in ~/.cache/gitstatus.
+- name: Install gitstatusd for powerlevel10k
+  command: "{{ ansible_env.HOME }}/.zsh/themes/powerlevel10k/gitstatus/install"
+  changed_when: false
+
 - name: Install zsh plugins
   git:
     repo: "{{ item.value }}"

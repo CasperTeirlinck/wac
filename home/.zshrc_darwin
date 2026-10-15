@@ -14,9 +14,25 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# Source a tool's generated init script from a cache, regenerated when the tool's binary changes.
+# Spawning every tool on each startup costs seconds when the binaries are cold (after a reboot or upgrade).
+_cached_eval() {
+  local cache=~/.cache/zsh/$1.zsh bin=${commands[$2]}
+  [[ -n $bin ]] || return
+  if [[ ! -s $cache || $cache -ot $bin ]]; then
+    mkdir -p ${cache:h}
+    "${@:2}" >| $cache
+  fi
+  source $cache
+}
+
+typeset -U path fpath
+
 # Update PATH
-command -v dircolors >/dev/null 2>&1 && eval "$(dircolors)"
-command -v /opt/homebrew/bin/brew >/dev/null 2>&1 && eval "$(/opt/homebrew/bin/brew shellenv | grep -v '^export PATH')"
+_cached_eval dircolors dircolors
+# `brew shellenv` minus PATH (appended below) and fpath (added under completions)
+export HOMEBREW_PREFIX=/opt/homebrew HOMEBREW_CELLAR=/opt/homebrew/Cellar HOMEBREW_REPOSITORY=/opt/homebrew
+export INFOPATH="/opt/homebrew/share/info:${INFOPATH:-}"
 export PATH="$PATH:$HOME/scripts"
 export PATH="$PATH:$HOME/.local/bin"
 export PATH="$PATH:$HOME/.local/share/nvim/mason/bin"
@@ -27,6 +43,8 @@ export PATH="$PATH:$HOME/.rd/bin"
 export PATH="$PATH:${KREW_ROOT:-$HOME/.krew}/bin"
 
 # Set theme
+# Never download gitstatusd at startup, Ansible installs it (roles/shell/tasks/zsh.yml)
+export GITSTATUS_AUTO_INSTALL=0
 source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
@@ -45,28 +63,28 @@ fpath+=~/.asdf/completions
 [ -d ~/.zfunc ] || mkdir ~/.zfunc
 
 # Completion: Load compinit + bashcompinit
-# only check cache once a day to prevent startup delay: https://gist.github.com/ctechols/ca1035271ad134841284
+# Always load the cached dump, and rebuild it in the background once a day to pick up new completions:
+# https://gist.github.com/ctechols/ca1035271ad134841284
 autoload -Uz compinit bashcompinit
-for dump in ~/.zcompdump(N.mh+24); do
-    compinit
-    bashcompinit
-done
 compinit -C
-bashcompinit -C
+bashcompinit
+if [[ -n ~/.zcompdump(#qN.mh+24) ]]; then
+  # compinit leaves an unchanged dump untouched, so touch it to keep the rebuild daily
+  ( compinit -C -d ~/.zcompdump.$$ && mv ~/.zcompdump.$$ ~/.zcompdump && touch ~/.zcompdump ) &!
+fi
 
 # Load plugins
 source ~/.zsh/plugins/fzf-tab/fzf-tab.plugin.zsh 2> /dev/null
-source ~/.zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh 2> /dev/null
 source ~/.zsh/plugins/fast-syntax-highlighting/fast-syntax-highlighting.plugin.zsh 2> /dev/null
 
 # Case insensitive completions
 zstyle ":completion:*" matcher-list "m:{a-z}={A-Za-z}"
 
 # Autojump
-command -v zoxide >/dev/null 2>&1 && eval "$(zoxide init zsh)"
+_cached_eval zoxide zoxide init zsh
 
 # Completions
-command -v pipx >/dev/null 2>&1 && eval "$(register-python-argcomplete pipx)"
+(( $+commands[pipx] )) && _cached_eval pipx register-python-argcomplete pipx
 if command -v poetry >/dev/null 2>&1 && [[ ! -f ~/.zfunc/_poetry || ~/.zfunc/_poetry -ot $(command -v poetry) ]]; then
     poetry completions zsh > ~/.zfunc/_poetry
 fi
@@ -75,7 +93,7 @@ if command -v conveyor >/dev/null 2>&1 && [[ ! -f ~/.zfunc/_conveyor || ~/.zfunc
 fi
 
 # Tool version manager: mise
-command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+_cached_eval mise mise activate zsh
 
 # Nix
 if [ -e "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
@@ -92,7 +110,7 @@ zstyle -e ':completion:*' special-dirs '[[ $PREFIX = (../)#(|.|..) ]]'
 zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
 
 # Set up fzf
-source <(fzf --zsh)
+_cached_eval fzf fzf --zsh
 export FZF_DEFAULT_OPTS='--color=pointer:2,prompt:4,info:242,gutter:-1 --pointer "→ " --prompt "→ "'
 
 # Set up fzf-tab
@@ -102,7 +120,7 @@ zstyle ':fzf-tab:*' fzf-flags --color=pointer:2,prompt:4,info:242,gutter:-1 --po
 # zstyle ':fzf-tab:complete:cd:*' fzf-preview 'eza -1 --color=always $realpath'
 
 # Atuin
-command -v atuin >/dev/null 2>&1 && eval "$(atuin init zsh)"
+_cached_eval atuin atuin init zsh
 
 # Aliases
 source $HOME/.bash_aliases

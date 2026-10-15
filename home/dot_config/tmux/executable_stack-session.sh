@@ -6,6 +6,11 @@
 # the outer session keeps its global values.
 set -euo pipefail
 
+# --no-attach: create and style the session only (used by the stack-escape
+# guard to rebuild a destroyed home session before re-pointing its client).
+attach=true
+[ "${1:-}" = --no-attach ] && { attach=false; shift; }
+
 [ -n "${TMUX:-}" ] || { echo "stack-session: run inside tmux" >&2; exit 1; }
 
 # Recursion guard: never nest a tab-session inside a tab-session. Resolved via
@@ -15,10 +20,12 @@ case "$(tmux display -p -t "$TMUX_PANE" '#{session_name}')" in
   stack-*) echo "stack-session: already inside a tab-session" >&2; exit 1 ;;
 esac
 
-# Default name is tied to the hosting window, so each workspace window gets
-# its own stable tab-session and re-running `tmi` there re-attaches (also
-# after a resurrect restore).
-name="stack-${1:-$(tmux display -p -t "$TMUX_PANE" '#{window_index}')}"
+# Default name is tied to the hosting window's ID (the digits of #{window_id}),
+# NOT its index: ids are server-unique and survive renumbering, while indexes
+# repeat across outer sessions and shift with renumber-windows, which would
+# attach a new window's tmi to some other window's stack session. Re-running
+# `tmi` in the same window still re-attaches (also after a resurrect restore).
+name="stack-${1:-$(tmux display -p -t "$TMUX_PANE" '#{window_id}' | tr -d '@')}"
 
 if ! tmux has-session -t "=$name" 2>/dev/null; then
   tmux new-session -d -s "$name" -c "$(tmux display -p '#{pane_current_path}')"
@@ -51,6 +58,8 @@ tmux set "${t[@]}" status-left-length 60
 # being active is the equivalent signal.
 tmux set "${t[@]}" status-right '#[fg=colour240]C-e #[default]#{?#{==:#{client_key_table},stack-prefix},#[fg=red]●#[default],#[fg=colour240]●#[default]} '
 tmux set "${t[@]}" status-right-length 40
+
+$attach || exit 0
 
 # Attach as a nested client on the SAME server ($TMUX names the socket; the
 # variable itself must be unset or tmux refuses to nest). destroy-unattached

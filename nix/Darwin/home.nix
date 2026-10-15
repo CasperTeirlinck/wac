@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 let
   # Need to import with absolute path (and impure flag) because this config is in gitignore.
   config-ext = import "${builtins.getEnv "PWD"}/config/config.nix";
@@ -21,6 +21,9 @@ in {
     # turn ```mermaid code blocks into SVG, which imagemagick then rasters
     # for inline rendering in markdown buffers (Ghostty kitty graphics).
     pkgs.mermaid-cli
+    # Worktree + tmux window lifecycle for parallel agents; config is
+    # chezmoi-managed (home/dot_config/workmux/config.yaml).
+    inputs.workmux.packages.${pkgs.system}.default
   ];
 
   # NOTE: mmdc needs a Chromium at runtime (PUPPETEER_EXECUTABLE_PATH) — the

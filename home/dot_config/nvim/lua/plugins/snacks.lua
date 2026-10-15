@@ -135,6 +135,20 @@ return {
       opts.picker.sources.notifications or {},
       { win = { preview = { wo = { wrap = true } } } }
     )
+    -- snacks's explorer git-status update (explorer/git.lua `_update`) resets
+    -- every node's `status`/`ignored` before re-applying fresh `git status`
+    -- output, but never resets `dir_status` — the "??"/"!!" git reports on a
+    -- whole untracked/ignored directory. The explorer finder makes children
+    -- inherit their parent's dir_status, so a directory that was untracked
+    -- kept rendering green after it was committed (upstream main still does
+    -- this as of 2026-09). Clear it before delegating.
+    local EGit = require("snacks.explorer.git")
+    local egit_update = EGit._update
+    EGit._update = function(cwd, results)
+      local Tree = require("snacks.explorer.tree")
+      Tree:walk(Tree:find(cwd), function(n) n.dir_status = nil end, { all = true })
+      return egit_update(cwd, results)
+    end
     opts.picker.sources.explorer = vim.tbl_deep_extend("force",
       opts.picker.sources.explorer or {},
       {

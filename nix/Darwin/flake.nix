@@ -9,6 +9,8 @@
             url = "github:nix-community/home-manager";
             inputs.nixpkgs.follows = "nixpkgs";
         };
+        # Fork with nested-session (stack) support; PR-able to raine/workmux.
+        workmux.url = "github:CasperTeirlinck/workmux/nested-sessions";
     };
 
     outputs = inputs@{ nixpkgs, home-manager, darwin, ... }: 
@@ -23,9 +25,7 @@
                     home-manager.useGlobalPkgs = true;
                     home-manager.useUserPackages = true;
                     home-manager.users.casper = import ./home.nix;
-
-                    # Optionally use home-manager.extraSpecialArgs
-                    # to pass through arguments to home.nix
+                    home-manager.extraSpecialArgs = { inherit inputs; };
                 }
             ];
         };

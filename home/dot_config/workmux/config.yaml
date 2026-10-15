@@ -1,0 +1,27 @@
+# workmux global config (project overrides live in a repo's .workmux.yaml).
+# Docs: https://workmux.raine.dev/guide/configuration/
+agent: claude
+nerdfont: true
+
+# All worktrees under one roof instead of <repo>__worktrees/ next to each
+# clone; {project} is the repo directory name.
+worktree_dir: ~/worktrees/{project}
+
+# The tmux window-status formats already embed #{?@workmux_status,...} in
+# ~/.tmux.conf; don't let workmux rewrite them.
+status_format: false
+
+# Deliberately no sidebar.width: an explicit config width overrides the
+# synced (manually resized) width on every refresh, so dragging the sidebar
+# edge fights the enforcement and glitches. With no config width workmux
+# persists the last manual resize and reuses it across toggles. The
+# percentage default only applies while no synced width exists yet; one has
+# been seeded, so the moving-base feedback loop of the nested stack setup
+# can't kick in.
+
+# New task window: agent on top, small shell below.
+panes:
+  - command: <agent>
+    focus: true
+  - split: horizontal
+    size: 12

@@ -27,6 +27,8 @@ export PATH="$PATH:$HOME/flutter/flutter/bin"
 export PATH="$PATH:/mnt/c/Users/casper/AppData/Local/Programs/Microsoft VS Code/bin"
 
 # Set theme
+# Never download gitstatusd at startup, Ansible installs it (roles/shell/tasks/zsh.yml)
+export GITSTATUS_AUTO_INSTALL=0
 source ~/.zsh/themes/powerlevel10k/powerlevel10k.zsh-theme
 ZSH_THEME="powerlevel10k/powerlevel10k"
 
